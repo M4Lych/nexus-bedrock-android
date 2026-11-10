@@ -1,1 +1,21 @@
+name: NEXUS Android Build
 
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inspect project
+        run: |
+          echo "Checking project structure..."
+          ls -la
+          echo "Checking Gradle wrapper..."
+          ls -la gradlew
+          echo "Checking Gradle configuration..."
+          find . -maxdepth 3 \( -name "build.gradle*" -o -name "settings.gradle*" \)
