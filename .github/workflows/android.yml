@@ -150,7 +150,7 @@ jobs:
         if: env.HAS_GOOGLE_SERVICES == 'true'
         run: ./gradlew assembleDebug assembleBeta assembleRelease
 
-            - name: Build Debug APK Without Firebase Secrets
+      - name: Build Debug APK Without Firebase Secrets
         if: env.HAS_GOOGLE_SERVICES == 'false'
         run: ./gradlew assembleDebug
 
