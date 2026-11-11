@@ -9,11 +9,17 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -232,7 +238,7 @@ final class ContentArchive {
     private static Pack readPack(ZipFile zip, Entry entry) {
         if (entry.zip.getSize() > MAX_PACK_MANIFEST_BYTES) return null;
         try (InputStream input = zip.getInputStream(entry.zip)) {
-            java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
             copyBounded(input, output, new byte[8192], MAX_PACK_MANIFEST_BYTES);
             String text = new String(output.toByteArray(), StandardCharsets.UTF_8);
             if (text.startsWith("\uFEFF")) text = text.substring(1);
@@ -271,8 +277,7 @@ final class ContentArchive {
             if (!manifestFile.isFile() || manifestFile.length() <= 0
                     || manifestFile.length() > MAX_PACK_MANIFEST_BYTES) continue;
             try {
-                String text = Files.readString(manifestFile.toPath(), StandardCharsets.UTF_8);
-                if (text.startsWith("\uFEFF")) text = text.substring(1);
+                String text = readBoundedUtf8(manifestFile, MAX_PACK_MANIFEST_BYTES);
                 JSONObject manifest = new JSONObject(ContentFiles.withoutComments(text));
                 JSONObject header = manifest.optJSONObject("header");
                 String existingUuid = header == null ? null : normalizeUuid(header.optString("uuid", null));
@@ -282,6 +287,33 @@ final class ContentArchive {
             }
         }
         return false;
+    }
+
+    private static String readBoundedUtf8(File file, long maxBytes) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        long total = 0;
+        try (FileInputStream input = new FileInputStream(file)) {
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                if (count > maxBytes - total) {
+                    throw new IOException("Pack manifest exceeds the supported size limit");
+                }
+                output.write(buffer, 0, count);
+                total += count;
+            }
+        }
+
+        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+        final String text;
+        try {
+            text = decoder.decode(ByteBuffer.wrap(output.toByteArray())).toString();
+        } catch (CharacterCodingException error) {
+            throw new IOException("Pack manifest is not valid UTF-8", error);
+        }
+        return text.startsWith("\uFEFF") ? text.substring(1) : text;
     }
 
     private static void extract(ZipFile zip, List<Entry> entries, String prefix,
