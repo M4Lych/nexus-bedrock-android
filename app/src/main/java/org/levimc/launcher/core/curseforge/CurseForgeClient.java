@@ -39,6 +39,8 @@ public class CurseForgeClient {
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
+                .followRedirects(false)
+                .followSslRedirects(false)
                 .build();
         this.gson = new Gson();
     }
@@ -55,7 +57,42 @@ public class CurseForgeClient {
         void onError(Throwable t);
     }
 
+    public boolean isApiEnabled() {
+        return BuildConfig.CURSEFORGE_API_ENABLED
+                && API_KEY != null && !API_KEY.trim().isEmpty();
+    }
+
+    public boolean isAuthorizedDownloadUrl(String url) {
+        HttpUrl parsed = HttpUrl.parse(url);
+        return isApiEnabled() && parsed != null && "https".equalsIgnoreCase(parsed.scheme())
+                && "edge.forgecdn.net".equalsIgnoreCase(parsed.host()) && parsed.port() == 443
+                && parsed.username().isEmpty() && parsed.password().isEmpty();
+    }
+
+    public Request buildAuthorizedDownloadRequest(String url) throws IOException {
+        if (!isAuthorizedDownloadUrl(url)) {
+            throw new IOException("Authorized CurseForge download is unavailable");
+        }
+        return requestBuilder(url).build();
+    }
+
+    private Request.Builder requestBuilder(String url) {
+        Request.Builder builder = new Request.Builder().url(url)
+                .addHeader("Accept", "application/json");
+        if (isApiEnabled()) {
+            builder.addHeader("x-api-key", API_KEY.trim());
+        }
+        return builder;
+    }
+
+    private <T> boolean rejectWhenDisabled(CurseForgeCallback<T> callback) {
+        if (isApiEnabled()) return false;
+        callback.onError(new IOException("CurseForge catalog access is not enabled for this build"));
+        return true;
+    }
+
     public void searchContent(String query, int classId, String version, int index, int pageSize, String sortField, String sortOrder, CurseForgeCallback<ContentSearchResponse> callback) {
+        if (rejectWhenDisabled(callback)) return;
         HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL + "/v1/mods/search").newBuilder();
         urlBuilder.addQueryParameter("gameId", String.valueOf(GAME_ID_MINECRAFT));
         urlBuilder.addQueryParameter("sortField", sortField != null ? sortField : SORT_POPULARITY);
@@ -73,11 +110,7 @@ public class CurseForgeClient {
             urlBuilder.addQueryParameter("gameVersion", version);
         }
 
-        Request request = new Request.Builder()
-                .url(urlBuilder.build())
-                .addHeader("x-api-key", API_KEY)
-                .addHeader("Accept", "application/json")
-                .build();
+        Request request = requestBuilder(urlBuilder.build().toString()).build();
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -88,7 +121,8 @@ public class CurseForgeClient {
             @Override
             public void onResponse(Call call, Response response) {
                 if (!response.isSuccessful()) {
-                    callback.onError(new IOException("Unexpected code " + response));
+                    response.close();
+                    callback.onError(new IOException("CurseForge request failed with HTTP " + response.code()));
                     return;
                 }
                 
@@ -104,12 +138,9 @@ public class CurseForgeClient {
     }
 
     public void getContentDescription(int contentId, CurseForgeCallback<String> callback) {
+        if (rejectWhenDisabled(callback)) return;
         String url = BASE_URL + "/v1/mods/" + contentId + "/description";
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("x-api-key", API_KEY)
-                .addHeader("Accept", "application/json")
-                .build();
+        Request request = requestBuilder(url).build();
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -120,7 +151,8 @@ public class CurseForgeClient {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    callback.onError(new IOException("Unexpected code " + response));
+                    response.close();
+                    callback.onError(new IOException("CurseForge request failed with HTTP " + response.code()));
                     return;
                 }
 
@@ -136,15 +168,12 @@ public class CurseForgeClient {
     }
 
     public void getModFiles(int modId, int index, int pageSize, CurseForgeCallback<ModFilesResponse> callback) {
+        if (rejectWhenDisabled(callback)) return;
         HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL + "/v1/mods/" + modId + "/files").newBuilder();
         urlBuilder.addQueryParameter("index", String.valueOf(index));
         urlBuilder.addQueryParameter("pageSize", String.valueOf(pageSize));
 
-        Request request = new Request.Builder()
-                .url(urlBuilder.build())
-                .addHeader("x-api-key", API_KEY)
-                .addHeader("Accept", "application/json")
-                .build();
+        Request request = requestBuilder(urlBuilder.build().toString()).build();
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -155,7 +184,8 @@ public class CurseForgeClient {
             @Override
             public void onResponse(Call call, Response response) {
                 if (!response.isSuccessful()) {
-                    callback.onError(new IOException("Unexpected code " + response));
+                    response.close();
+                    callback.onError(new IOException("CurseForge request failed with HTTP " + response.code()));
                     return;
                 }
 

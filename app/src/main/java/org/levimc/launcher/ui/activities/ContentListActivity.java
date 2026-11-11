@@ -98,6 +98,8 @@ public class ContentListActivity extends BaseActivity {
     private List<WorldItem> pendingBatchWorlds = new ArrayList<>();
     private List<ResourcePackItem> pendingBatchPacks = new ArrayList<>();
     private boolean skipInitialResumeRefresh = true;
+    private boolean favoritesOnly;
+    private boolean recentWorldsOnly;
 
     private List<WorldItem> allWorlds = new ArrayList<>();
     private List<ResourcePackItem> allPacks = new ArrayList<>();
@@ -286,13 +288,38 @@ public class ContentListActivity extends BaseActivity {
             else openCustomFlatWorld();
         });
         binding.selectButton.setOnClickListener(v -> enterSelectionMode());
+        binding.favoritesFilterButton.setOnClickListener(v -> {
+            favoritesOnly = !favoritesOnly;
+            if (favoritesOnly) recentWorldsOnly = false;
+            updateContentFilterButtons();
+            filterContent(binding.searchEditText.getText().toString());
+        });
+        binding.recentFilterButton.setOnClickListener(v -> {
+            recentWorldsOnly = !recentWorldsOnly;
+            if (recentWorldsOnly) favoritesOnly = false;
+            updateContentFilterButtons();
+            filterContent(binding.searchEditText.getText().toString());
+        });
         binding.selectAllButton.setOnClickListener(v -> selectAllVisible());
         binding.batchExportButton.setOnClickListener(v -> startBatchExport());
         binding.batchTransferButton.setOnClickListener(v -> showBatchTransferDialog());
         binding.batchDeleteButton.setOnClickListener(v -> showBatchDeleteDialog());
 
         setupSearchFilter();
+        binding.favoritesFilterButton.setVisibility(isPackType() || contentType == TYPE_WORLDS ? View.VISIBLE : View.GONE);
+        binding.recentFilterButton.setVisibility(contentType == TYPE_WORLDS ? View.VISIBLE : View.GONE);
+        updateContentFilterButtons();
         updateSelectionToolbar();
+    }
+
+    private void updateContentFilterButtons() {
+        if (binding == null) return;
+        binding.favoritesFilterButton.setSelected(favoritesOnly);
+        binding.favoritesFilterButton.setAlpha(favoritesOnly ? 1f : 0.48f);
+        binding.favoritesFilterButton.setColorFilter(getColor(favoritesOnly ? R.color.primary : R.color.text_secondary));
+        binding.recentFilterButton.setSelected(recentWorldsOnly);
+        binding.recentFilterButton.setTextColor(getColor(recentWorldsOnly ? R.color.on_primary : R.color.on_surface));
+        binding.recentFilterButton.setBackgroundResource(recentWorldsOnly ? R.drawable.bg_tab_selected : R.drawable.bg_filter_chip);
     }
 
     private void setupSearchFilter() {
@@ -315,9 +342,16 @@ public class ContentListActivity extends BaseActivity {
         String lowerQuery = rawQuery.toLowerCase();
 
         if (contentType == TYPE_WORLDS && worldsAdapter != null) {
-            List<WorldItem> filtered = lowerQuery.isEmpty() ? new ArrayList<>(allWorlds) : allWorlds.stream()
-                    .filter(world -> world.getWorldName() != null && world.getWorldName().toLowerCase().contains(lowerQuery))
+            List<WorldItem> filtered = allWorlds.stream()
+                    .filter(world -> !favoritesOnly || org.levimc.launcher.util.LocalPersonalizationStore.isContentFavorite(this, world))
+                    .filter(world -> !recentWorldsOnly || org.levimc.launcher.util.LocalPersonalizationStore.getWorldEditorVisit(this, world) > 0L)
+                    .filter(world -> lowerQuery.isEmpty() || (world.getWorldName() != null && world.getWorldName().toLowerCase().contains(lowerQuery)))
                     .collect(Collectors.toList());
+            filtered.sort((left, right) -> recentWorldsOnly
+                    ? Long.compare(org.levimc.launcher.util.LocalPersonalizationStore.getWorldEditorVisit(this, right),
+                            org.levimc.launcher.util.LocalPersonalizationStore.getWorldEditorVisit(this, left))
+                    : Boolean.compare(org.levimc.launcher.util.LocalPersonalizationStore.isContentFavorite(this, right),
+                            org.levimc.launcher.util.LocalPersonalizationStore.isContentFavorite(this, left)));
             worldsAdapter.updateWorlds(filtered);
             updateListState(filtered.size(), allWorlds.size(), rawQuery);
         } else if (contentType == TYPE_SERVERS && serversAdapter != null) {
@@ -328,9 +362,13 @@ public class ContentListActivity extends BaseActivity {
             serversAdapter.updateData(filtered);
             updateListState(filtered.size(), allServers.size(), rawQuery);
         } else if (isPackType() && packsAdapter != null) {
-            List<ResourcePackItem> filtered = lowerQuery.isEmpty() ? new ArrayList<>(allPacks) : allPacks.stream()
-                    .filter(pack -> pack.getPackName() != null && pack.getPackName().toLowerCase().contains(lowerQuery))
+            List<ResourcePackItem> filtered = allPacks.stream()
+                    .filter(pack -> !favoritesOnly || org.levimc.launcher.util.LocalPersonalizationStore.isContentFavorite(this, pack))
+                    .filter(pack -> lowerQuery.isEmpty() || (pack.getPackName() != null && pack.getPackName().toLowerCase().contains(lowerQuery)))
                     .collect(Collectors.toList());
+            filtered.sort((left, right) -> Boolean.compare(
+                    org.levimc.launcher.util.LocalPersonalizationStore.isContentFavorite(this, right),
+                    org.levimc.launcher.util.LocalPersonalizationStore.isContentFavorite(this, left)));
             packsAdapter.updateResourcePacks(filtered);
             updateListState(filtered.size(), allPacks.size(), rawQuery);
         }
@@ -370,6 +408,7 @@ public class ContentListActivity extends BaseActivity {
             }
         });
         worldsAdapter.setOnSelectionChangedListener(count -> updateSelectionToolbar());
+        worldsAdapter.setOnFavoriteChangedListener(() -> filterContent(binding.searchEditText.getText().toString()));
 
         binding.contentRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         binding.contentRecyclerView.setAdapter(worldsAdapter);
@@ -382,6 +421,7 @@ public class ContentListActivity extends BaseActivity {
             Toast.makeText(this, R.string.world_directory_not_found, Toast.LENGTH_SHORT).show();
             return;
         }
+        org.levimc.launcher.util.LocalPersonalizationStore.recordWorldEditorOpened(this, world);
         
         Intent intent = new Intent(this, WorldEditorActivity.class);
         intent.putExtra(WorldEditorActivity.EXTRA_WORLD_PATH, worldFile.getAbsolutePath());
@@ -408,6 +448,7 @@ public class ContentListActivity extends BaseActivity {
             }
         });
         packsAdapter.setOnSelectionChangedListener(count -> updateSelectionToolbar());
+        packsAdapter.setOnFavoriteChangedListener(() -> filterContent(binding.searchEditText.getText().toString()));
 
         binding.contentRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         binding.contentRecyclerView.setAdapter(packsAdapter);
@@ -1251,6 +1292,12 @@ public class ContentListActivity extends BaseActivity {
         if (query != null && !query.isEmpty()) {
             binding.emptyStateTitle.setText(getString(R.string.no_search_results, query));
             binding.emptyStateMessage.setText("");
+        } else if (favoritesOnly) {
+            binding.emptyStateTitle.setText(R.string.content_favorites_empty_title);
+            binding.emptyStateMessage.setText(R.string.content_favorites_empty_message);
+        } else if (recentWorldsOnly) {
+            binding.emptyStateTitle.setText(R.string.content_recent_worlds_empty_title);
+            binding.emptyStateMessage.setText(R.string.content_recent_worlds_empty_message);
         } else if (contentType == TYPE_WORLDS) {
             binding.emptyStateTitle.setText(R.string.no_worlds_found);
             binding.emptyStateMessage.setText(R.string.no_worlds_message);

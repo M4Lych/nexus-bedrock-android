@@ -49,6 +49,7 @@ public class InstancesActivity extends BaseActivity {
 
     private static final int FILTER_ALL = 0;
     private static final int FILTER_CUSTOM = 1;
+    private static final int FILTER_FAVORITES = 2;
     private static final int CARD_GLASS_ALPHA_LIGHT = 48;
     private static final int CARD_GLASS_ALPHA_DARK = 58;
     private static final int CARD_OUTLINE_ALPHA_LIGHT = 90;
@@ -60,8 +61,10 @@ public class InstancesActivity extends BaseActivity {
     private VersionManager versionManager;
     private RecyclerView recyclerView;
     private InstanceCardAdapter adapter;
-    private TextView filterAll, filterCustom;
+    private TextView filterAll, filterCustom, filterFavorites;
     private TextView instanceCountBadge;
+    private View instancesEmptyState;
+    private TextView instancesEmptyTitle, instancesEmptyMessage;
     private EditText searchInput;
     private int currentFilter = FILTER_ALL;
     private List<GameVersion> allVersions = new ArrayList<>();
@@ -141,7 +144,11 @@ public class InstancesActivity extends BaseActivity {
         recyclerView = findViewById(R.id.instances_recycler);
         filterAll = findViewById(R.id.filter_all);
         filterCustom = findViewById(R.id.filter_custom);
+        filterFavorites = findViewById(R.id.filter_favorites);
         instanceCountBadge = findViewById(R.id.instance_count_badge);
+        instancesEmptyState = findViewById(R.id.instances_empty_state);
+        instancesEmptyTitle = findViewById(R.id.instances_empty_title);
+        instancesEmptyMessage = findViewById(R.id.instances_empty_message);
         searchInput = findViewById(R.id.search_input);
 
         int spanCount = calculateSpanCount();
@@ -162,6 +169,10 @@ public class InstancesActivity extends BaseActivity {
             adapter.setSelectedVersion(version);
             adapter.notifyDataSetChanged();
         });
+        adapter.setOnFavoriteChangedListener(() -> {
+            loadVersions();
+            applyFilters();
+        });
 
         adapter.setOnSettingsClickListener(version -> {
             Intent intent = new Intent(this, InstanceSettingsActivity.class);
@@ -178,7 +189,7 @@ public class InstancesActivity extends BaseActivity {
         setupImportButton();
         setupBackupImportButton();
         setupBatchBackupButton();
-        updateCount();
+        applyFilters();
         handleBackupOpenIntent(getIntent());
 
         DynamicAnim.applyPressScaleRecursively(findViewById(android.R.id.content));
@@ -208,6 +219,9 @@ public class InstancesActivity extends BaseActivity {
         if (custom != null) allVersions.addAll(custom);
 
         Collections.sort(allVersions, (a, b) -> {
+            boolean favoriteA = org.levimc.launcher.util.LocalPersonalizationStore.isProfileFavorite(this, a);
+            boolean favoriteB = org.levimc.launcher.util.LocalPersonalizationStore.isProfileFavorite(this, b);
+            if (favoriteA != favoriteB) return favoriteA ? -1 : 1;
             String va = a.versionCode != null ? a.versionCode : "";
             String vb = b.versionCode != null ? b.versionCode : "";
             return vb.compareTo(va);
@@ -227,12 +241,17 @@ public class InstancesActivity extends BaseActivity {
             updateFilterUI();
             applyFilters();
         });
+        filterFavorites.setOnClickListener(v -> {
+            currentFilter = FILTER_FAVORITES;
+            updateFilterUI();
+            applyFilters();
+        });
     }
 
     private void updateFilterUI() {
         PersonalizationManager pm = new PersonalizationManager(this);
         int accent = pm.getAccentColor();
-        TextView[] tabs = {filterAll, filterCustom};
+        TextView[] tabs = {filterAll, filterCustom, filterFavorites};
         for (int i = 0; i < tabs.length; i++) {
             boolean selected = (i == currentFilter);
             tabs[i].setSelected(selected);
@@ -772,6 +791,8 @@ public class InstancesActivity extends BaseActivity {
 
         for (GameVersion v : allVersions) {
             if (currentFilter == FILTER_CUSTOM && v.isInstalled) continue;
+            if (currentFilter == FILTER_FAVORITES
+                    && !org.levimc.launcher.util.LocalPersonalizationStore.isProfileFavorite(this, v)) continue;
 
             if (!query.isEmpty()) {
                 String name = v.displayName != null ? v.displayName.toLowerCase() : "";
@@ -786,6 +807,16 @@ public class InstancesActivity extends BaseActivity {
         }
 
         adapter.updateData(filtered);
+        boolean empty = filtered.isEmpty();
+        instancesEmptyState.setVisibility(empty ? View.VISIBLE : View.GONE);
+        if (empty) {
+            boolean noProfiles = allVersions.isEmpty();
+            boolean noFavorites = currentFilter == FILTER_FAVORITES && !allVersions.isEmpty();
+            instancesEmptyTitle.setText(noProfiles ? R.string.instances_empty_title
+                    : noFavorites ? R.string.instances_favorites_empty_title : R.string.instances_no_results_title);
+            instancesEmptyMessage.setText(noProfiles ? R.string.instances_empty_message
+                    : noFavorites ? R.string.instances_favorites_empty_message : R.string.instances_no_results_message);
+        }
         updateCount();
     }
 
@@ -842,6 +873,7 @@ public class InstancesActivity extends BaseActivity {
         private GameVersion selectedVersion;
         private OnItemClickListener listener;
         private OnSettingsClickListener settingsListener;
+        private Runnable favoriteChangedListener;
 
         interface OnItemClickListener {
             void onClick(GameVersion version);
@@ -858,6 +890,8 @@ public class InstancesActivity extends BaseActivity {
         void setOnSettingsClickListener(OnSettingsClickListener l) {
             this.settingsListener = l;
         }
+
+        void setOnFavoriteChangedListener(Runnable listener) { this.favoriteChangedListener = listener; }
 
         InstanceCardAdapter(List<GameVersion> versions, GameVersion selected) {
             this.versions = new ArrayList<>(versions);
@@ -930,6 +964,11 @@ public class InstancesActivity extends BaseActivity {
             holder.versionCode.setTextColor(primaryTextColor);
             holder.displayName.setTextColor(secondaryTextColor);
             holder.settingsIcon.setImageTintList(ColorStateList.valueOf(secondaryTextColor));
+            boolean favorite = org.levimc.launcher.util.LocalPersonalizationStore.isProfileFavorite(holder.itemView.getContext(), v);
+            holder.favoriteIcon.setImageResource(R.drawable.ic_star);
+            holder.favoriteIcon.setAlpha(favorite ? 1f : 0.35f);
+            holder.favoriteIcon.setContentDescription(holder.itemView.getContext().getString(
+                    favorite ? R.string.content_remove_favorite : R.string.content_add_favorite));
 
             if (v.isInstalled) {
                 holder.typeTag.setText(R.string.tag_installed);
@@ -965,6 +1004,11 @@ public class InstancesActivity extends BaseActivity {
             holder.settingsIcon.setOnClickListener(iv -> {
                 if (settingsListener != null) settingsListener.onClick(v);
             });
+            holder.favoriteIcon.setOnClickListener(view -> {
+                org.levimc.launcher.util.LocalPersonalizationStore.toggleProfileFavorite(view.getContext(), v);
+                if (favoriteChangedListener != null) favoriteChangedListener.run();
+                else notifyDataSetChanged();
+            });
 
             holder.itemView.setOnClickListener(iv -> {
                 if (listener != null) listener.onClick(v);
@@ -995,6 +1039,7 @@ public class InstancesActivity extends BaseActivity {
         static class VH extends RecyclerView.ViewHolder {
             TextView versionCode, typeTag, displayName;
             ImageView settingsIcon;
+            ImageView favoriteIcon;
 
             VH(View v) {
                 super(v);
@@ -1002,6 +1047,7 @@ public class InstancesActivity extends BaseActivity {
                 typeTag = v.findViewById(R.id.card_type_tag);
                 displayName = v.findViewById(R.id.card_display_name);
                 settingsIcon = v.findViewById(R.id.card_settings_icon);
+                favoriteIcon = v.findViewById(R.id.card_favorite_button);
             }
         }
     }

@@ -3,6 +3,8 @@ package org.levimc.launcher.core.content;
 import android.content.Context;
 import android.net.Uri;
 
+import org.levimc.launcher.R;
+
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -49,15 +51,20 @@ public class ContentImporter {
                     total.warnings.add(uri.getLastPathSegment() + ": " + error.getMessage());
                 }
             }
-            if (total.total() == 0) {
+            if (total.total() == 0 && total.duplicatePacks == 0) {
                 callback.onError(total.warnings.isEmpty() ? "No content was imported" : String.join("\n", total.warnings));
                 return;
             }
-            StringBuilder message = new StringBuilder("Imported:");
+            StringBuilder message = new StringBuilder(total.total() == 0
+                    ? context.getString(R.string.content_import_none_new)
+                    : context.getString(R.string.content_imported));
             if (total.worlds > 0) message.append(" Worlds: ").append(total.worlds);
             if (total.resources > 0) message.append(" Resource Packs: ").append(total.resources);
             if (total.behaviors > 0) message.append(" Behavior Packs: ").append(total.behaviors);
             if (total.skins > 0) message.append(" Skin Packs: ").append(total.skins);
+            if (total.duplicatePacks > 0) {
+                message.append("\n").append(context.getString(R.string.content_import_duplicates, total.duplicatePacks));
+            }
             if (!total.warnings.isEmpty()) message.append("\nErrors:\n").append(String.join("\n", total.warnings));
             callback.onProgress(100);
             callback.onSuccess(message.toString());

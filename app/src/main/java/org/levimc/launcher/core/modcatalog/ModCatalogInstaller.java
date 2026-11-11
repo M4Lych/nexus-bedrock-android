@@ -16,6 +16,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,7 +32,13 @@ public final class ModCatalogInstaller {
     }
 
     private static final String TAG = "ModCatalogInstaller";
-    private static final OkHttpClient HTTP = new OkHttpClient();
+    private static final long MAX_DOWNLOAD_BYTES = 256L * 1024L * 1024L;
+    private static final OkHttpClient HTTP = new OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(5, TimeUnit.MINUTES)
+            .build();
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private final Context context;
     private final FileHandler fileHandler;
@@ -48,6 +55,9 @@ public final class ModCatalogInstaller {
             try {
                 String extension = extensionFor(asset);
                 if (extension == null) throw new IllegalArgumentException("Unsupported download file type");
+                if (asset.size > MAX_DOWNLOAD_BYTES) {
+                    throw new IllegalArgumentException("Download exceeds the supported size limit");
+                }
                 File downloadDir = new File(context.getCacheDir(), "external_mod_downloads");
                 if (!downloadDir.exists() && !downloadDir.mkdirs()) {
                     throw new IllegalStateException("Could not prepare download folder");
@@ -92,12 +102,18 @@ public final class ModCatalogInstaller {
                 throw new IllegalStateException("Download failed with HTTP " + response.code());
             }
             long total = response.body().contentLength();
+            if (total > MAX_DOWNLOAD_BYTES) {
+                throw new IllegalStateException("Download exceeds the supported size limit");
+            }
             try (InputStream input = response.body().byteStream();
                  FileOutputStream output = new FileOutputStream(target)) {
                 byte[] buffer = new byte[16384];
                 long completed = 0;
                 int read;
                 while ((read = input.read(buffer)) != -1) {
+                    if (read > MAX_DOWNLOAD_BYTES - completed) {
+                        throw new IllegalStateException("Download exceeds the supported size limit");
+                    }
                     output.write(buffer, 0, read);
                     completed += read;
                     if (total > 0) {

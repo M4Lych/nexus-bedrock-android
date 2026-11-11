@@ -60,9 +60,9 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.Accoun
 
         if (a.active) {
             holder.activeBadge.setVisibility(View.VISIBLE);
-            holder.btnUse.setEnabled(false);
-            holder.btnUse.setText(R.string.ms_activated);
-            holder.btnUse.setAlpha(0.6f);
+            holder.btnUse.setEnabled(true);
+            holder.btnUse.setText(R.string.ms_refresh_account);
+            holder.btnUse.setAlpha(1.0f);
         } else {
             holder.activeBadge.setVisibility(View.GONE);
             holder.btnUse.setEnabled(true);

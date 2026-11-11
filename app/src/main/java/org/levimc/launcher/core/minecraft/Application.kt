@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import org.levimc.launcher.core.crash.CrashReporter
+import org.levimc.launcher.integration.firebase.FirebaseCrashReportUploadProvider
 import org.levimc.launcher.core.discord.DiscordPresence
 import org.levimc.launcher.core.packages.PackageService
 import org.levimc.launcher.core.news.NewsNotificationHelper
@@ -17,6 +18,7 @@ class LauncherApplication : Application() {
         super.onCreate()
         context = applicationContext
         FeatureSettings.init(applicationContext)
+        CrashReporter.installUploadProvider(FirebaseCrashReportUploadProvider())
         CrashReporter.init(this)
         val processName = Application.getProcessName()
         if (processName.endsWith(":crash")) return

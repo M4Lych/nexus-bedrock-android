@@ -24,13 +24,10 @@
             android:orientation="vertical">
 
             <TextView
+                style="@style/OblivionScreenTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/misans"
-                android:text="@string/content_management"
-                android:textColor="@color/primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:text="@string/content_management" />
 
             <TextView
                 android:id="@+id/version_text"
@@ -47,7 +44,7 @@
         <Button
             android:id="@+id/import_content_button"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_marginEnd="8dp"
             android:backgroundTint="@color/primary"
             android:fontFamily="@font/misans"
@@ -62,8 +59,8 @@
 
         <ImageButton
             android:id="@+id/edit_options_button"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_settings"
             android:contentDescription="@string/edit_options"

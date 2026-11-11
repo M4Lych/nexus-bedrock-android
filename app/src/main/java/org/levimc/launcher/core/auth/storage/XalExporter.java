@@ -30,7 +30,7 @@ public class XalExporter {
         try {
             exportActiveAccountOrThrow(ctx);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to export XAL data", e);
+            Log.e(TAG, "Failed to export XAL data (" + e.getClass().getSimpleName() + ")");
         }
     }
 
@@ -60,7 +60,7 @@ public class XalExporter {
             msa.addProperty("expireTimeMs", 0L);
             return true;
         } catch (Exception e) {
-            Log.w(TAG, "Could not read Minecraft's refreshed credentials", e);
+            Log.w(TAG, "Could not read Minecraft's refreshed credentials (" + e.getClass().getSimpleName() + ")");
             return false;
         }
     }

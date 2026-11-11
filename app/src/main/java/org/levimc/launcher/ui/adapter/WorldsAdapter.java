@@ -15,6 +15,7 @@ import com.bumptech.glide.Glide;
 import org.levimc.launcher.R;
 import org.levimc.launcher.core.content.WorldItem;
 import org.levimc.launcher.util.PersonalizationManager;
+import org.levimc.launcher.util.LocalPersonalizationStore;
 import org.levimc.launcher.ui.views.ContentActionPopup;
 
 import java.io.File;
@@ -31,6 +32,7 @@ public class WorldsAdapter extends RecyclerView.Adapter<WorldsAdapter.WorldViewH
     private final Set<String> selectedPaths = new LinkedHashSet<>();
     private OnWorldActionListener onWorldActionListener;
     private OnSelectionChangedListener onSelectionChangedListener;
+    private Runnable onFavoriteChangedListener;
     private boolean selectionMode;
 
     public interface OnWorldActionListener {
@@ -53,6 +55,8 @@ public class WorldsAdapter extends RecyclerView.Adapter<WorldsAdapter.WorldViewH
     public void setOnSelectionChangedListener(OnSelectionChangedListener listener) {
         this.onSelectionChangedListener = listener;
     }
+
+    public void setOnFavoriteChangedListener(Runnable listener) { this.onFavoriteChangedListener = listener; }
 
     public void updateWorlds(List<WorldItem> updatedWorlds) {
         worlds.clear();
@@ -150,8 +154,15 @@ public class WorldsAdapter extends RecyclerView.Adapter<WorldsAdapter.WorldViewH
         holder.itemView.setActivated(selected);
         holder.editButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
         holder.overflowButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
+        holder.favoriteButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
         holder.selectionIndicator.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
         holder.selectionIndicator.setAlpha(selected ? 1f : 0.28f);
+
+        boolean favorite = LocalPersonalizationStore.isContentFavorite(holder.itemView.getContext(), world);
+        holder.favoriteButton.setImageResource(R.drawable.ic_star);
+        holder.favoriteButton.setAlpha(favorite ? 1f : 0.35f);
+        holder.favoriteButton.setContentDescription(holder.itemView.getContext().getString(
+                favorite ? R.string.content_remove_favorite : R.string.content_add_favorite));
 
         File icon = world.getIconFile();
         Glide.with(holder.worldIcon)
@@ -169,6 +180,11 @@ public class WorldsAdapter extends RecyclerView.Adapter<WorldsAdapter.WorldViewH
         });
         holder.editButton.setOnClickListener(v -> {
             if (onWorldActionListener != null) onWorldActionListener.onWorldEdit(world);
+        });
+        holder.favoriteButton.setOnClickListener(v -> {
+            LocalPersonalizationStore.toggleContentFavorite(v.getContext(), world);
+            notifyDataSetChanged();
+            if (onFavoriteChangedListener != null) onFavoriteChangedListener.run();
         });
         holder.overflowButton.setOnClickListener(v -> showOverflow(holder.overflowButton, world));
 
@@ -237,6 +253,7 @@ public class WorldsAdapter extends RecyclerView.Adapter<WorldsAdapter.WorldViewH
         final TextView worldLastPlayed;
         final TextView worldDescription;
         final ImageButton editButton;
+        final ImageButton favoriteButton;
         final ImageButton overflowButton;
         final ImageView selectionIndicator;
 
@@ -247,6 +264,7 @@ public class WorldsAdapter extends RecyclerView.Adapter<WorldsAdapter.WorldViewH
             worldLastPlayed = itemView.findViewById(R.id.world_last_played);
             worldDescription = itemView.findViewById(R.id.world_description);
             editButton = itemView.findViewById(R.id.world_edit_button);
+            favoriteButton = itemView.findViewById(R.id.world_favorite_button);
             overflowButton = itemView.findViewById(R.id.world_overflow_button);
             selectionIndicator = itemView.findViewById(R.id.world_selection_indicator);
         }

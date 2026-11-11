@@ -19,6 +19,10 @@ public class ContentFile implements Serializable {
     public String fileDate;
     @SerializedName("downloadUrl")
     public String downloadUrl;
+    @SerializedName("isAvailable")
+    public Boolean isAvailable;
+    @SerializedName("fileLength")
+    public long fileLength;
     @SerializedName("gameVersions")
     public List<String> gameVersions;
     @SerializedName("dependencies")

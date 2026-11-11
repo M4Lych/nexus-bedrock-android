@@ -5,10 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import android.os.SystemClock
-import com.google.firebase.FirebaseApp
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.levimc.launcher.BuildConfig
-import org.levimc.launcher.settings.FeatureSettings
 import org.levimc.launcher.ui.activities.CrashActivity
 import org.levimc.launcher.util.LauncherStorage
 import xcrash.ICrashCallback
@@ -16,7 +13,6 @@ import xcrash.XCrash
 import java.io.File
 
 object CrashReporter {
-    private const val MAX_CRASHLYTICS_VALUE_LENGTH = 1024
     private const val EXTRA_LOG_PATH = "LOG_PATH"
     private const val EXTRA_SUMMARY = "SUMMARY"
     private const val EXTRA_CRASH_TYPE = "CRASH_TYPE"
@@ -31,6 +27,15 @@ object CrashReporter {
     @Volatile
     private var handlingCrash = false
 
+    @Volatile
+    private var uploadProvider: CrashReportUploadProvider = NoCrashReportUploadProvider
+
+    /** Installs the optional upload integration. Existing callers remain compatible. */
+    @JvmStatic
+    fun installUploadProvider(provider: CrashReportUploadProvider?) {
+        uploadProvider = provider ?: NoCrashReportUploadProvider
+    }
+
     @JvmStatic
     fun init(application: Application) {
         if (installed) return
@@ -39,7 +44,7 @@ object CrashReporter {
             installed = true
 
             val appContext = application.applicationContext
-            configureCrashlytics(appContext)
+            configureUploadProvider(appContext)
             if (isCrashProcess()) return
 
             val logDir = crashLogDir(appContext)
@@ -58,16 +63,16 @@ object CrashReporter {
 
     @JvmStatic
     fun sendUnsentReports() {
-        if (!isCrashlyticsEnabled()) return
         try {
-            FirebaseCrashlytics.getInstance().sendUnsentReports()
+            uploadProvider.sendUnsentReports()
         } catch (_: Throwable) {
+            // Optional upload failures must not interrupt launcher or crash recovery.
         }
     }
 
     @JvmStatic
     fun refreshCrashlyticsCollection(context: Context) {
-        configureCrashlytics(context.applicationContext)
+        configureUploadProvider(context.applicationContext)
     }
 
     @JvmStatic
@@ -80,7 +85,11 @@ object CrashReporter {
         return ICrashCallback { logPath, emergency ->
             handlingCrash = true
             val summary = buildCrashSummary(crashType, emergency)
-            recordXCrashToCrashlytics(crashType, logPath, emergency, summary)
+            try {
+                uploadProvider.recordCrash(CrashReportEvent(crashType, logPath, emergency, summary))
+            } catch (_: Throwable) {
+                // Continue to local recovery even if an upload provider fails.
+            }
             sendUnsentReports()
             launchCrashActivity(appContext, crashType, logPath, emergency, summary)
         }
@@ -107,88 +116,19 @@ object CrashReporter {
         }
     }
 
-    private fun recordXCrashToCrashlytics(
-        crashType: String,
-        logPath: String?,
-        emergency: String?,
-        summary: String
-    ) {
-        if (!isCrashlyticsEnabled()) return
-        try {
-            FirebaseCrashlytics.getInstance().apply {
-                setCustomKey("last_crash_type", crashType)
-                setCustomKey("last_crash_summary", trimCrashlyticsValue(summary))
-                setCustomKey("version_name", BuildConfig.VERSION_NAME)
-                setCustomKey("version_code", BuildConfig.VERSION_CODE)
-                setCustomKey("is_beta", BuildConfig.IS_BETA)
-                setCustomKey("build_type", BuildConfig.BUILD_TYPE)
-                if (!logPath.isNullOrBlank()) {
-                    setCustomKey("local_crash_log", trimCrashlyticsValue(logPath))
-                    log("xCrash local log: $logPath")
-                }
-                if (!emergency.isNullOrBlank()) {
-                    log("xCrash emergency: ${trimCrashlyticsValue(emergency)}")
-                }
-                recordException(XCrashCapturedException(crashType, summary))
-            }
-        } catch (_: Throwable) {
-        }
-    }
-
-    private fun configureCrashlytics(context: Context) {
-        if (!ensureFirebaseInitialized(context)) return
-        try {
-            FirebaseCrashlytics.getInstance().apply {
-                val uploadEnabled = isCrashUploadEnabled()
-                setCrashlyticsCollectionEnabled(uploadEnabled)
-                if (!uploadEnabled) {
-                    deleteUnsentReports()
-                    return
-                }
-                setCustomKey("version_name", BuildConfig.VERSION_NAME)
-                setCustomKey("version_code", BuildConfig.VERSION_CODE)
-                setCustomKey("is_beta", BuildConfig.IS_BETA)
-                setCustomKey("build_type", BuildConfig.BUILD_TYPE)
-            }
-        } catch (_: Throwable) {
-        }
-    }
-
     private fun recordHandlerError(error: Throwable) {
-        if (!isCrashlyticsEnabled()) return
         try {
-            FirebaseCrashlytics.getInstance().recordException(error)
+            uploadProvider.recordException(error)
         } catch (_: Throwable) {
+            // Reporting a recovery-handler error must not replace local recovery.
         }
     }
 
-    private fun ensureFirebaseInitialized(context: Context): Boolean {
-        if (!isCrashlyticsAvailable()) return false
-        return try {
-            if (FirebaseApp.getApps(context).isEmpty()) {
-                FirebaseApp.initializeApp(context)
-            }
-            FirebaseApp.getApps(context).isNotEmpty()
+    private fun configureUploadProvider(context: Context) {
+        try {
+            uploadProvider.configure(context)
         } catch (_: Throwable) {
-            false
-        }
-    }
-
-    private fun isCrashlyticsEnabled(): Boolean {
-        return isCrashlyticsAvailable() && isCrashUploadEnabled()
-    }
-
-    private fun isCrashlyticsAvailable(): Boolean {
-        return BuildConfig.BUILD_TYPE == "debug" ||
-            BuildConfig.BUILD_TYPE == "release" ||
-            BuildConfig.BUILD_TYPE == "beta"
-    }
-
-    private fun isCrashUploadEnabled(): Boolean {
-        return try {
-            FeatureSettings.getInstance().isCrashUploadEnabled
-        } catch (_: Throwable) {
-            true
+            // A backend initialization failure must not prevent local crash capture.
         }
     }
 
@@ -242,16 +182,4 @@ object CrashReporter {
         }
     }
 
-    private fun trimCrashlyticsValue(value: String): String {
-        return if (value.length > MAX_CRASHLYTICS_VALUE_LENGTH) {
-            value.take(MAX_CRASHLYTICS_VALUE_LENGTH)
-        } else {
-            value
-        }
-    }
-
-    private class XCrashCapturedException(
-        crashType: String,
-        summary: String
-    ) : RuntimeException("xCrash captured $crashType crash: $summary")
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Account JSON, exported bearer tokens, and device identity are credential material. -->
+        <exclude domain="file" path="xal/" />
+        <exclude domain="sharedpref" path="org.levimc.xal.crypto.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="xal/" />
+        <exclude domain="sharedpref" path="org.levimc.xal.crypto.xml" />
+    </device-transfer>
+</data-extraction-rules>

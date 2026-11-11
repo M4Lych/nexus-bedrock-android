@@ -298,12 +298,12 @@ public final class MsftAuthManager {
         try {
             refreshToken(authManager.getPlayFabXstsToken());
         } catch (IOException error) {
-            Log.w(TAG, "PlayFab token unavailable", error);
+            Log.w(TAG, "PlayFab token unavailable (" + error.getClass().getSimpleName() + ")");
         }
         try {
             refreshToken(authManager.getRealmsXstsToken());
         } catch (IOException error) {
-            Log.w(TAG, "Realms token unavailable", error);
+            Log.w(TAG, "Realms token unavailable (" + error.getClass().getSimpleName() + ")");
         }
     }
 
@@ -370,8 +370,20 @@ public final class MsftAuthManager {
         try {
             saveAccountOrThrow(context, authManager);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to save account", e);
+            Log.e(TAG, "Failed to save account (" + e.getClass().getSimpleName() + ")");
         }
+    }
+
+    /** Converts provider-controlled OAuth error values to safe, non-secret UI text. */
+    public static String describeOAuthError(Context context, String error) {
+        String code = normalizeError(error);
+        if ("access_denied".equals(code) || "authorization_declined".equals(code)) {
+            return context.getString(org.levimc.launcher.R.string.ms_login_declined);
+        }
+        if ("temporarily_unavailable".equals(code) || "server_error".equals(code)) {
+            return context.getString(org.levimc.launcher.R.string.ms_login_service_unavailable);
+        }
+        return context.getString(org.levimc.launcher.R.string.ms_login_oauth_error);
     }
 
     public static String describeError(Throwable throwable) {
@@ -380,7 +392,8 @@ public final class MsftAuthManager {
         if (error instanceof CancellationException || error instanceof InterruptedException) {
             return "Microsoft sign-in was cancelled.";
         }
-        if (error instanceof UnknownHostException) {
+        if (error instanceof UnknownHostException || error instanceof ConnectException
+                || error instanceof NoRouteToHostException || error instanceof SocketException) {
             return "No internet connection or Microsoft could not be reached.";
         }
         if (error instanceof SocketTimeoutException || error instanceof TimeoutException) {
@@ -390,11 +403,6 @@ public final class MsftAuthManager {
             return "A secure connection to Microsoft could not be established.";
         }
         if (error instanceof XblRequestException) {
-            XblRequestException xblError = (XblRequestException) error;
-            String message = xblError.getErrorMessage();
-            if (!TextUtils.isEmpty(message) && !"An unknown error occurred".equals(message)) {
-                return message;
-            }
             return "Xbox rejected this account. Check the account's Xbox profile, age, family, region, and privacy settings.";
         }
         if (error instanceof MsaRequestException) {
@@ -412,15 +420,10 @@ public final class MsftAuthManager {
             if ("bad_verification_code".equals(code)) {
                 return "Microsoft rejected the device code. Start sign-in again.";
             }
-            if (!TextUtils.isEmpty(msaError.getErrorMessage())) {
-                return msaError.getErrorMessage();
-            }
+            return "Microsoft rejected the sign-in request. Start a new sign-in.";
         }
         if (error instanceof ApiHttpRequestException) {
-            ApiHttpRequestException apiError = (ApiHttpRequestException) error;
-            if (!TextUtils.isEmpty(apiError.getErrorMessage())) {
-                return apiError.getErrorMessage();
-            }
+            return "Microsoft or Xbox rejected the authentication request. Try signing in again.";
         }
         if (error instanceof HttpRequestException) {
             HttpRequestException requestError = (HttpRequestException) error;
@@ -442,11 +445,10 @@ public final class MsftAuthManager {
             }
         }
 
-        String message = error != null ? error.getMessage() : null;
-        if (TextUtils.isEmpty(message) || "{}".equals(message.trim())) {
-            return "Microsoft sign-in failed. Start a new sign-in or use Device Code login.";
+        if (error instanceof IllegalStateException) {
+            return "The saved Microsoft session could not be refreshed. Sign in again from Accounts.";
         }
-        return message;
+        return "Microsoft sign-in could not be completed. Start a new sign-in and check your connection.";
     }
 
     private interface ThrowingSupplier<T> {
@@ -488,10 +490,10 @@ public final class MsftAuthManager {
         current = throwable;
         while (current != null) {
             if (current instanceof UnknownHostException
-                    || current instanceof SocketTimeoutException
                     || current instanceof ConnectException
                     || current instanceof NoRouteToHostException
-                    || current instanceof SocketException) {
+                    || current instanceof SocketException
+                    || current instanceof SocketTimeoutException) {
                 return true;
             }
             if (current instanceof HttpRequestException) {
@@ -537,6 +539,9 @@ public final class MsftAuthManager {
         Throwable requestError = null;
         while (current != null) {
             if (current instanceof UnknownHostException
+                    || current instanceof ConnectException
+                    || current instanceof NoRouteToHostException
+                    || current instanceof SocketException
                     || current instanceof SocketTimeoutException
                     || current instanceof SSLException
                     || current instanceof TimeoutException

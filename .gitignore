@@ -47,6 +47,16 @@ captures/
 # Keystore files (DO NOT COMMIT)
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# Local environment and service credentials (DO NOT COMMIT)
+.env
+.env.*
+credentials*.json
+service-account*.json
 
 # Native build
 .externalNativeBuild/

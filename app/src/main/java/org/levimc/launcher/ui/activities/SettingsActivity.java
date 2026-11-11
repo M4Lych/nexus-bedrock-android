@@ -37,7 +37,6 @@ import org.levimc.launcher.settings.FeatureSettings;
 import org.levimc.launcher.ui.animation.DynamicAnim;
 import org.levimc.launcher.ui.dialogs.LogcatOverlayManager;
 import org.levimc.launcher.ui.packages.SettingsCard;
-import org.levimc.launcher.util.GithubReleaseUpdater;
 import org.levimc.launcher.util.LanguageManager;
 import org.levimc.launcher.util.PermissionsHandler;
 import org.levimc.launcher.util.PersonalizationManager;
@@ -186,15 +185,20 @@ public class SettingsActivity extends BaseActivity {
 
         TextView navTheme = findViewById(R.id.personalize_nav_theme);
         TextView navWallpaper = findViewById(R.id.personalize_nav_wallpaper);
+        TextView navDashboard = findViewById(R.id.personalize_nav_dashboard);
         navTheme.setOnClickListener(v -> selectPersonalizeSection(0));
         navWallpaper.setOnClickListener(v -> selectPersonalizeSection(1));
+        navDashboard.setOnClickListener(v -> selectPersonalizeSection(2));
     }
 
-    /** Switches between the personalization sub-sections (theme and colors / wallpaper), as on Windows. */
+    /** Switches between theme, wallpaper, and local dashboard personalization. */
     private void selectPersonalizeSection(int index) {
+        index = Math.max(0, Math.min(2, index));
         personalizeSectionIndex = index;
-        TextView[] navs = {findViewById(R.id.personalize_nav_theme), findViewById(R.id.personalize_nav_wallpaper)};
-        View[] groups = {findViewById(R.id.personalize_theme_group), findViewById(R.id.personalize_wallpaper_group)};
+        TextView[] navs = {findViewById(R.id.personalize_nav_theme), findViewById(R.id.personalize_nav_wallpaper),
+                findViewById(R.id.personalize_nav_dashboard)};
+        View[] groups = {findViewById(R.id.personalize_theme_group), findViewById(R.id.personalize_wallpaper_group),
+                findViewById(R.id.personalize_dashboard_group)};
         int accent = personalizationManager.getAccentColor();
         for (int i = 0; i < navs.length; i++) {
             boolean selected = i == index;
@@ -378,6 +382,43 @@ public class SettingsActivity extends BaseActivity {
 
         setupColorPicker();
         setupBackgroundImagePicker();
+        setupDashboardPersonalization();
+    }
+
+    private void setupDashboardPersonalization() {
+        LinearLayout options = findViewById(R.id.dashboard_options_container);
+        if (options == null) return;
+        options.removeAllViews();
+        addDashboardToggle(options, R.string.settings_dashboard_mods, org.levimc.launcher.util.LocalPersonalizationStore.DASHBOARD_MODS);
+        addDashboardToggle(options, R.string.settings_dashboard_content, org.levimc.launcher.util.LocalPersonalizationStore.DASHBOARD_CONTENT);
+        addDashboardToggle(options, R.string.settings_dashboard_shortcuts, org.levimc.launcher.util.LocalPersonalizationStore.DASHBOARD_SHORTCUTS);
+        addDashboardToggle(options, R.string.settings_dashboard_action_curseforge, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_CURSEFORGE);
+        addDashboardToggle(options, R.string.settings_dashboard_action_ai, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_AI);
+        addDashboardToggle(options, R.string.settings_dashboard_action_packages, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_PACKAGES);
+        addDashboardToggle(options, R.string.settings_dashboard_action_external_mods, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_EXTERNAL_MODS);
+        addDashboardToggle(options, R.string.settings_dashboard_action_accounts, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_ACCOUNTS);
+        addDashboardToggle(options, R.string.settings_dashboard_action_quick_launch, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_QUICK_LAUNCH);
+        Button reset = findViewById(R.id.reset_dashboard_button);
+        reset.setOnClickListener(v -> {
+            org.levimc.launcher.util.LocalPersonalizationStore.resetDashboard(this);
+            setupDashboardPersonalization();
+        });
+    }
+
+    private void addDashboardToggle(LinearLayout container, int title, String preferenceKey) {
+        com.google.android.material.switchmaterial.SwitchMaterial toggle =
+                new com.google.android.material.switchmaterial.SwitchMaterial(this);
+        toggle.setText(title);
+        toggle.setTextColor(getColor(R.color.on_surface));
+        toggle.setTextSize(13f);
+        toggle.setMinHeight((int) (48 * getResources().getDisplayMetrics().density));
+        toggle.setPadding(0, 4, 0, 4);
+        toggle.setThumbTintList(android.content.res.ColorStateList.valueOf(getColor(R.color.primary)));
+        toggle.setChecked(org.levimc.launcher.util.LocalPersonalizationStore.isDashboardVisible(this, preferenceKey));
+        toggle.setOnCheckedChangeListener((button, checked) ->
+                org.levimc.launcher.util.LocalPersonalizationStore.setDashboardVisible(this, preferenceKey, checked));
+        container.addView(toggle, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     }
 
     private void refreshThemeSelectionUI() {
@@ -869,7 +910,7 @@ public class SettingsActivity extends BaseActivity {
             updateButtonTapCount = 0;
             triggerEasterEgg();
         } else {
-            new GithubReleaseUpdater(this, "LiteLDev", "LeviLauncher-Android", permissionResultLauncher).checkUpdate();
+            Toast.makeText(this, R.string.updates_not_configured, Toast.LENGTH_LONG).show();
         }
     }
 

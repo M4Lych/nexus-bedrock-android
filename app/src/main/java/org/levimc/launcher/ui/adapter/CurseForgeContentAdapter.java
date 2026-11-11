@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import org.levimc.launcher.R;
 import org.levimc.launcher.core.curseforge.models.Content;
@@ -146,6 +147,8 @@ public class CurseForgeContentAdapter extends RecyclerView.Adapter<RecyclerView.
             if (url != null && !url.isEmpty()) {
                 Glide.with(icon)
                         .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true)
                         .centerCrop()
                         .placeholder(R.drawable.ic_minecraft_cube)
                         .error(R.drawable.ic_minecraft_cube)

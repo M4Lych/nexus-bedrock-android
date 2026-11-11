@@ -240,10 +240,7 @@ public class MsftLoginActivity extends BaseActivity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request != null && request.isForMainFrame() && !redirectHandled && isCurrentWebLogin()) {
-                    String message = error != null && error.getDescription() != null
-                            ? error.getDescription().toString()
-                            : getString(R.string.ms_login_failed);
-                    showMethodChooser(message);
+                    showMethodChooser(getString(R.string.ms_login_network_error));
                 }
             }
 
@@ -384,7 +381,6 @@ public class MsftLoginActivity extends BaseActivity {
         Uri uri = Uri.parse(url);
         String returnedState = uri.getQueryParameter("state");
         String error = uri.getQueryParameter("error");
-        String errorDescription = uri.getQueryParameter("error_description");
         String code = uri.getQueryParameter("code");
 
         if (!TextUtils.equals(state, returnedState)) {
@@ -392,7 +388,7 @@ public class MsftLoginActivity extends BaseActivity {
             return;
         }
         if (!TextUtils.isEmpty(error)) {
-            showMethodChooser(!TextUtils.isEmpty(errorDescription) ? errorDescription : error);
+            showMethodChooser(MsftAuthManager.describeOAuthError(this, error));
             return;
         }
         if (TextUtils.isEmpty(code)) {

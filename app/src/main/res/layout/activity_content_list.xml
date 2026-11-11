@@ -31,16 +31,13 @@
 
                 <TextView
                     android:id="@+id/title_text"
+                    style="@style/OblivionScreenTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:ellipsize="end"
-                    android:fontFamily="@font/misans"
                     android:maxLines="1"
-                    android:text="@string/worlds_title"
-                    android:textColor="@color/primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:text="@string/worlds_title" />
 
                 <TextView
                     android:id="@+id/item_count_text"
@@ -59,7 +56,7 @@
                 <EditText
                     android:id="@+id/search_edit_text"
                     android:layout_width="0dp"
-                    android:layout_height="38dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="14dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_search_box"
@@ -75,14 +72,42 @@
                     android:textColorHint="@color/text_secondary"
                     android:textSize="13sp" />
 
+                <ImageButton
+                    android:id="@+id/favorites_filter_button"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/filter_favorites"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_star"
+                    android:visibility="gone"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/recent_filter_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="2dp"
+                    android:background="@drawable/bg_filter_chip"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:paddingHorizontal="12dp"
+                    android:text="@string/content_recent"
+                    android:textColor="@color/on_surface"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
                 <Button
                     android:id="@+id/select_button"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="8dp"
                     android:backgroundTint="@color/surface_variant"
                     android:fontFamily="@font/misans"
-                    android:minHeight="0dp"
+                    android:minHeight="48dp"
                     android:minWidth="0dp"
                     android:paddingHorizontal="14dp"
                     android:text="@string/select"
@@ -94,11 +119,11 @@
                 <Button
                     android:id="@+id/custom_flat_button"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="8dp"
                     android:backgroundTint="@color/primary"
                     android:fontFamily="@font/misans"
-                    android:minHeight="0dp"
+                    android:minHeight="48dp"
                     android:minWidth="0dp"
                     android:paddingHorizontal="14dp"
                     android:text="@string/custom_flat_world"

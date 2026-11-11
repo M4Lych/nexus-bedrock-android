@@ -70,6 +70,10 @@ public class FileListAdapter extends RecyclerView.Adapter<FileListAdapter.ViewHo
 
         void bind(final ContentFile file, final OnFileClickListener listener, int accentColor) {
             name.setText(file.displayName != null ? file.displayName : file.fileName);
+            boolean canDownload = !Boolean.FALSE.equals(file.isAvailable)
+                    && file.downloadUrl != null && !file.downloadUrl.trim().isEmpty();
+            btnDownload.setEnabled(canDownload);
+            btnDownload.setAlpha(canDownload ? 1f : 0.45f);
             date.setText(file.fileDate != null && file.fileDate.length() >= 10 ? file.fileDate.substring(0, 10) : "");
             
             if (file.gameVersions != null && !file.gameVersions.isEmpty()) {

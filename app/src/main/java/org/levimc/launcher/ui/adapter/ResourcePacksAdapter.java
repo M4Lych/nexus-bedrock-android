@@ -16,6 +16,7 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import org.levimc.launcher.R;
 import org.levimc.launcher.core.content.ResourcePackItem;
 import org.levimc.launcher.util.PersonalizationManager;
+import org.levimc.launcher.util.LocalPersonalizationStore;
 import org.levimc.launcher.ui.views.ContentActionPopup;
 
 import java.io.File;
@@ -32,6 +33,7 @@ public class ResourcePacksAdapter extends RecyclerView.Adapter<ResourcePacksAdap
     private final Set<String> selectedPaths = new LinkedHashSet<>();
     private OnResourcePackActionListener onResourcePackActionListener;
     private OnSelectionChangedListener onSelectionChangedListener;
+    private Runnable onFavoriteChangedListener;
     private boolean selectionMode;
 
     public interface OnResourcePackActionListener {
@@ -51,6 +53,8 @@ public class ResourcePacksAdapter extends RecyclerView.Adapter<ResourcePacksAdap
     public void setOnSelectionChangedListener(OnSelectionChangedListener listener) {
         this.onSelectionChangedListener = listener;
     }
+
+    public void setOnFavoriteChangedListener(Runnable listener) { this.onFavoriteChangedListener = listener; }
 
     public void updateResourcePacks(List<ResourcePackItem> packs) {
         resourcePacks.clear();
@@ -149,8 +153,15 @@ public class ResourcePacksAdapter extends RecyclerView.Adapter<ResourcePacksAdap
         holder.itemView.setActivated(selected);
         holder.exportButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
         holder.overflowButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
+        holder.favoriteButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
         holder.selectionIndicator.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
         holder.selectionIndicator.setAlpha(selected ? 1f : 0.28f);
+
+        boolean favorite = LocalPersonalizationStore.isContentFavorite(holder.itemView.getContext(), pack);
+        holder.favoriteButton.setImageResource(R.drawable.ic_star);
+        holder.favoriteButton.setAlpha(favorite ? 1f : 0.35f);
+        holder.favoriteButton.setContentDescription(holder.itemView.getContext().getString(
+                favorite ? R.string.content_remove_favorite : R.string.content_add_favorite));
 
         int fallback = fallbackIcon(pack);
         File icon = pack.getIconFile();
@@ -170,6 +181,11 @@ public class ResourcePacksAdapter extends RecyclerView.Adapter<ResourcePacksAdap
         });
         holder.exportButton.setOnClickListener(v -> {
             if (onResourcePackActionListener != null) onResourcePackActionListener.onResourcePackExport(pack);
+        });
+        holder.favoriteButton.setOnClickListener(v -> {
+            LocalPersonalizationStore.toggleContentFavorite(v.getContext(), pack);
+            notifyDataSetChanged();
+            if (onFavoriteChangedListener != null) onFavoriteChangedListener.run();
         });
         holder.overflowButton.setOnClickListener(v -> showOverflow(holder.overflowButton, pack));
 
@@ -235,6 +251,7 @@ public class ResourcePacksAdapter extends RecyclerView.Adapter<ResourcePacksAdap
         final TextView packDescription;
         final TextView packMeta;
         final ImageButton exportButton;
+        final ImageButton favoriteButton;
         final ImageButton overflowButton;
         final ImageView selectionIndicator;
 
@@ -245,6 +262,7 @@ public class ResourcePacksAdapter extends RecyclerView.Adapter<ResourcePacksAdap
             packDescription = itemView.findViewById(R.id.pack_description);
             packMeta = itemView.findViewById(R.id.pack_meta);
             exportButton = itemView.findViewById(R.id.pack_export_button);
+            favoriteButton = itemView.findViewById(R.id.pack_favorite_button);
             overflowButton = itemView.findViewById(R.id.pack_overflow_button);
             selectionIndicator = itemView.findViewById(R.id.pack_selection_indicator);
         }

@@ -63,7 +63,7 @@ public class MsftAccountStore {
             List<MsftAccount> list = GSON.fromJson(reader, LIST_TYPE);
             return list != null ? list : new ArrayList<>();
         } catch (Exception ex) {
-            Log.w("XALExport", "Failed to read " + f.getAbsolutePath(), ex);
+            Log.w("XALExport", "Failed to read saved account data (" + ex.getClass().getSimpleName() + ")");
             return new ArrayList<>();
         }
     }
@@ -149,7 +149,7 @@ public class MsftAccountStore {
         if (!hasActive && !list.isEmpty()) list.get(0).active = true;
         save(ctx, list);
         org.levimc.launcher.core.auth.storage.XalExporter.removeAccountData(ctx, removedUserId);
-        if (list.isEmpty()) org.levimc.launcher.core.auth.storage.XalExporter.exportActiveAccount(ctx);
+        org.levimc.launcher.core.auth.storage.XalExporter.exportActiveAccount(ctx);
     }
 
     public static synchronized void setActive(Context ctx, String id) {

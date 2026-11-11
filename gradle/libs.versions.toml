@@ -1,7 +1,6 @@
 [versions]
 agp = "8.13.2"
 bcprovJdk15on = "1.70"
-bedrockConnection = "3.0.0.Beta10-SNAPSHOT"
 espressoCore = "3.7.0"
 appcompat = "1.7.1"
 annotation = "1.9.1"
@@ -59,7 +58,6 @@ androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifec
 androidx-preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = "preference-ktx" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 bcprov-jdk15on = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bcprovJdk15on" }
-bedrock-connection = { module = "org.cloudburstmc.protocol:bedrock-connection", version.ref = "bedrockConnection" }
 commons-gson = { module = "net.lenni0451.commons:gson", version.ref = "httpclientVersion" }
 commons-httpclient = { module = "net.lenni0451.commons:httpclient", version.ref = "httpclientVersion" }
 conscrypt-android = { module = "org.conscrypt:conscrypt-android", version.ref = "conscryptAndroid" }
@@ -68,7 +66,6 @@ core = { module = "com.madgag.spongycastle:core", version.ref = "core" }
 core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }

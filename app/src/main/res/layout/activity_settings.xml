@@ -23,13 +23,10 @@
 
             <TextView
                 android:id="@+id/settings_title"
+                style="@style/OblivionScreenTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_title"
-                android:fontFamily="@font/misans"
-                android:textColor="@color/primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:text="@string/settings_title" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -56,7 +53,7 @@
                     <TextView
                         android:id="@+id/tab_basic"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
                         android:text="@string/settings_tab_basic"
@@ -66,12 +63,13 @@
                         android:textStyle="bold"
                         android:background="@drawable/bg_tab_selected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                     <TextView
                         android:id="@+id/tab_personalize"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="8dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
@@ -81,12 +79,13 @@
                         android:textSize="13sp"
                         android:background="@drawable/bg_tab_unselected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                     <TextView
                         android:id="@+id/tab_components"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="8dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
@@ -96,12 +95,13 @@
                         android:textSize="13sp"
                         android:background="@drawable/bg_tab_unselected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                     <TextView
                         android:id="@+id/tab_others"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="8dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
@@ -111,12 +111,13 @@
                         android:textSize="13sp"
                         android:background="@drawable/bg_tab_unselected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                     <TextView
                         android:id="@+id/tab_privacy"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="8dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
@@ -126,12 +127,13 @@
                         android:textSize="13sp"
                         android:background="@drawable/bg_tab_unselected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                     <TextView
                         android:id="@+id/tab_updates"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="8dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
@@ -141,12 +143,13 @@
                         android:textSize="13sp"
                         android:background="@drawable/bg_tab_unselected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                     <TextView
                         android:id="@+id/tab_about"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="8dp"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
@@ -156,7 +159,8 @@
                         android:textSize="13sp"
                         android:background="@drawable/bg_tab_unselected"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground" />
 
                 </LinearLayout>
             </HorizontalScrollView>
@@ -214,7 +218,7 @@
                             <Spinner
                                 android:id="@+id/language_spinner"
                                 android:layout_width="wrap_content"
-                                android:layout_height="36dp"
+                                android:layout_height="48dp"
                                 android:minWidth="120dp"
                                 android:background="@drawable/bg_spinner_outline" />
                         </LinearLayout>
@@ -325,7 +329,7 @@
                         <TextView
                             android:id="@+id/personalize_nav_theme"
                             android:layout_width="wrap_content"
-                            android:layout_height="30dp"
+                            android:layout_height="48dp"
                             android:paddingHorizontal="14dp"
                             android:gravity="center"
                             android:text="@string/settings_personalize_theme"
@@ -339,11 +343,26 @@
                         <TextView
                             android:id="@+id/personalize_nav_wallpaper"
                             android:layout_width="wrap_content"
-                            android:layout_height="30dp"
+                            android:layout_height="48dp"
                             android:layout_marginStart="8dp"
                             android:paddingHorizontal="14dp"
                             android:gravity="center"
                             android:text="@string/settings_personalize_wallpaper"
+                            android:fontFamily="@font/misans"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:background="@drawable/bg_tab_unselected"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/personalize_nav_dashboard"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:layout_marginStart="8dp"
+                            android:paddingHorizontal="14dp"
+                            android:gravity="center"
+                            android:text="@string/settings_dashboard"
                             android:fontFamily="@font/misans"
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp"
@@ -773,6 +792,54 @@
                         </LinearLayout>
                     </LinearLayout>
 
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/personalize_dashboard_group"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/card_background"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_dashboard_title"
+                                android:textColor="@color/on_surface"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="@string/settings_dashboard_desc"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+
+                            <LinearLayout
+                                android:id="@+id/dashboard_options_container"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:orientation="vertical" />
+
+                            <Button
+                                android:id="@+id/reset_dashboard_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/settings_dashboard_reset"
+                                android:textAllCaps="false" />
+                        </LinearLayout>
                     </LinearLayout>
 
                 </LinearLayout>

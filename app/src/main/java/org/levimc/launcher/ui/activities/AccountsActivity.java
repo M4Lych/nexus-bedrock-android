@@ -93,7 +93,7 @@ public class AccountsActivity extends BaseActivity {
             @Override
             public void onSetActive(MsftAccountStore.MsftAccount account) {
                 loadingDialog = org.levimc.launcher.util.DialogUtils.ensure(AccountsActivity.this, loadingDialog);
-                org.levimc.launcher.util.DialogUtils.showWithMessage(loadingDialog, getString(R.string.ms_login_auth_xbox_device));
+                org.levimc.launcher.util.DialogUtils.showWithMessage(loadingDialog, getString(R.string.ms_refreshing_account));
 
                 executor.execute(() -> {
                     try {

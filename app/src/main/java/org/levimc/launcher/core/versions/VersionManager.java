@@ -27,6 +27,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VersionManager {
+    public enum MinecraftInstallationState {
+        DETECTED,
+        METADATA_CHANGED,
+        NOT_FOUND,
+        CHECK_UNAVAILABLE
+    }
+
+    private static final class InstallationSnapshot {
+        final PackageInfo packageInfo;
+        final String fingerprint;
+        final boolean querySucceeded;
+
+        InstallationSnapshot(PackageInfo packageInfo, String fingerprint, boolean querySucceeded) {
+            this.packageInfo = packageInfo;
+            this.fingerprint = fingerprint;
+            this.querySucceeded = querySucceeded;
+        }
+    }
+
     private static final String PREFS_NAME = "version_manager";
     private static final String KEY_SELECTED_TYPE = "selected_type";
     private static final String KEY_SELECTED_PACKAGE = "selected_package";
@@ -41,6 +60,8 @@ public class VersionManager {
     private final List<GameVersion> installedVersions = new ArrayList<>();
     private final List<GameVersion> customVersions = new ArrayList<>();
     private GameVersion selectedVersion;
+    private volatile String lastInstalledPackageFingerprint;
+    private volatile MinecraftInstallationState installationState = MinecraftInstallationState.CHECK_UNAVAILABLE;
     private final SharedPreferences prefs;
     private final VersionProfileMetadataStore metadataStore = new VersionProfileMetadataStore();
 
@@ -319,22 +340,52 @@ public class VersionManager {
     }
 
     public void loadAllVersions() {
-        installedVersions.clear();
-        customVersions.clear();
+        loadAllVersions(queryMinecraftInstallation());
+    }
+
+    private void loadAllVersions(InstallationSnapshot installation) {
+        if (!installation.querySucceeded) {
+            installationState = MinecraftInstallationState.CHECK_UNAVAILABLE;
+            // Preserve the last known-good profile snapshot when PackageManager is
+            // temporarily unavailable. On first launch, continue discovering custom profiles.
+            if (!installedVersions.isEmpty() || !customVersions.isEmpty()) return;
+        } else {
+            boolean metadataChanged = installation.packageInfo != null
+                    && lastInstalledPackageFingerprint != null
+                    && !"missing".equals(lastInstalledPackageFingerprint)
+                    && !lastInstalledPackageFingerprint.equals(installation.fingerprint);
+            installedVersions.clear();
+            customVersions.clear();
+            selectedVersion = null;
+            installationState = installation.packageInfo == null
+                    ? MinecraftInstallationState.NOT_FOUND
+                    : metadataChanged
+                    ? MinecraftInstallationState.METADATA_CHANGED
+                    : MinecraftInstallationState.DETECTED;
+            lastInstalledPackageFingerprint = installation.fingerprint;
+        }
 
         File baseDir = LauncherStorage.getMinecraftRoot(context);
-
-        PackageManager pm = context.getPackageManager();
-        try {
-            PackageInfo pi = pm.getPackageInfo(MinecraftLauncher.MC_PACKAGE_NAME, 0);
+        PackageInfo pi = installation.packageInfo;
+        if (pi != null) {
+            PackageManager pm = context.getPackageManager();
             File versionDir = getVersionDirForPackage(baseDir, pi.packageName);
             if (!versionDir.exists()) versionDir.mkdirs();
             
             File gamesDir = LauncherStorage.getProfileGameDataDir(context, pi.packageName);
             if (!gamesDir.exists()) gamesDir.mkdirs();
 
-            String appLabel = String.valueOf(pi.applicationInfo.loadLabel(pm));
-            boolean hasSoFiles = hasSoFilesInDir(new File(pi.applicationInfo.nativeLibraryDir));
+            ApplicationInfo appInfo = pi.applicationInfo;
+            String appLabel = pi.packageName;
+            if (appInfo != null) {
+                try {
+                    CharSequence label = appInfo.loadLabel(pm);
+                    if (label != null) appLabel = label.toString();
+                } catch (RuntimeException ignored) {
+                }
+            }
+            String nativeLibraryDir = appInfo != null ? appInfo.nativeLibraryDir : null;
+            boolean hasSoFiles = hasSoFilesInDir(nativeLibraryDir == null ? null : new File(nativeLibraryDir));
             VersionProfileMetadata metadata = loadMetadata(
                     LauncherStorage.INSTALLED_MINECRAFT_PROFILE_ID,
                     VersionProfileMetadataStore.Defaults.installed(pi.packageName, pi.versionName)
@@ -359,15 +410,19 @@ public class VersionManager {
                 gv.isExtractFalse = true;
             }
 
-            gv.abiList = inferAbiFromNativeLibDir(pi.applicationInfo.nativeLibraryDir, gv);
+            gv.abiList = inferAbiFromNativeLibDir(nativeLibraryDir, gv);
             gv.versionIsolation = metadata.versionIsolation;
             gv.launchVertically = metadata.launchVertically;
 
             installedVersions.add(gv);
-        } catch (PackageManager.NameNotFoundException ignored) {
         }
 
-        File[] dirs = baseDir.listFiles(File::isDirectory);
+        File[] dirs;
+        try {
+            dirs = baseDir.listFiles(File::isDirectory);
+        } catch (SecurityException ignored) {
+            dirs = null;
+        }
 
         if (dirs != null) {
             for (File dir : dirs) {
@@ -381,6 +436,59 @@ public class VersionManager {
             }
         }
         restoreSelectedVersion();
+    }
+
+    /**
+     * Re-checks package-manager metadata without walking profile storage. A full
+     * discovery scan is only needed when Minecraft is installed, removed, or updated.
+     * Returns true when discovery was refreshed.
+     */
+    public boolean refreshInstalledMinecraftIfChanged() {
+        InstallationSnapshot current = queryMinecraftInstallation();
+        if (!current.querySucceeded) {
+            installationState = MinecraftInstallationState.CHECK_UNAVAILABLE;
+            return false;
+        }
+        if (current.fingerprint.equals(lastInstalledPackageFingerprint)) {
+            if (installationState != MinecraftInstallationState.METADATA_CHANGED) {
+                installationState = current.packageInfo == null
+                        ? MinecraftInstallationState.NOT_FOUND
+                        : MinecraftInstallationState.DETECTED;
+            }
+            return false;
+        }
+        loadAllVersions(current);
+        return true;
+    }
+
+    private InstallationSnapshot queryMinecraftInstallation() {
+        try {
+            PackageInfo packageInfo = context.getPackageManager()
+                    .getPackageInfo(MinecraftLauncher.MC_PACKAGE_NAME, 0);
+            ApplicationInfo applicationInfo = packageInfo.applicationInfo;
+            String fingerprint = packageInfo.packageName + "|"
+                    + safeValue(packageInfo.versionName, "") + "|"
+                    + packageInfo.versionCode + "|"
+                    + packageInfo.lastUpdateTime + "|"
+                    + (applicationInfo != null ? safeValue(applicationInfo.sourceDir, "") : "") + "|"
+                    + (applicationInfo != null ? safeValue(applicationInfo.nativeLibraryDir, "") : "");
+            return new InstallationSnapshot(packageInfo, fingerprint, true);
+        } catch (PackageManager.NameNotFoundException e) {
+            return new InstallationSnapshot(null, "missing", true);
+        } catch (RuntimeException e) {
+            // A temporary PackageManager/visibility failure is unknown, not uninstall.
+            return new InstallationSnapshot(null, null, false);
+        }
+    }
+
+    public MinecraftInstallationState getMinecraftInstallationState() {
+        return installationState;
+    }
+
+    public void acknowledgeMinecraftInstallationMetadataChange() {
+        if (installationState == MinecraftInstallationState.METADATA_CHANGED) {
+            installationState = MinecraftInstallationState.DETECTED;
+        }
     }
 
     private void syncInstalledMetadata(String packageName, String versionName, VersionProfileMetadata metadata) {
@@ -612,6 +720,13 @@ public class VersionManager {
 
     public GameVersion getSelectedVersion() {
         if (selectedVersion != null) return selectedVersion;
+        if ((installationState == MinecraftInstallationState.CHECK_UNAVAILABLE
+                || installationState == MinecraftInstallationState.NOT_FOUND)
+                && "installed".equals(prefs.getString(KEY_SELECTED_TYPE, null))) {
+            // Keep the saved installed-profile choice until it is available again or
+            // the user explicitly selects another profile.
+            return null;
+        }
         if (!installedVersions.isEmpty()) {
             selectVersion(installedVersions.get(0));
             return installedVersions.get(0);

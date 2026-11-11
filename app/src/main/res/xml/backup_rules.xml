@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Keep unrelated app data backed up, but never copy auth tokens or XAL credentials. -->
+    <exclude domain="file" path="xal/" />
+    <exclude domain="sharedpref" path="org.levimc.xal.crypto.xml" />
+</full-backup-content>

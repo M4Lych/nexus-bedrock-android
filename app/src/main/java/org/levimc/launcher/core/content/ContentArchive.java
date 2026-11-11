@@ -37,6 +37,7 @@ final class ContentArchive {
         int resources;
         int behaviors;
         int skins;
+        int duplicatePacks;
         final List<String> warnings = new ArrayList<>();
 
         int total() { return worlds + resources + behaviors + skins; }
@@ -46,6 +47,7 @@ final class ContentArchive {
             resources += result.resources;
             behaviors += result.behaviors;
             skins += result.skins;
+            duplicatePacks += result.duplicatePacks;
             warnings.addAll(result.warnings);
         }
     }
@@ -60,8 +62,14 @@ final class ContentArchive {
         final String prefix;
         final boolean[] types = new boolean[3];
         final List<Entry> entries = new ArrayList<>();
+        String uuid;
         Pack(String prefix) { this.prefix = prefix; }
     }
+
+    private static final long MAX_PACK_MANIFEST_BYTES = 1024L * 1024L;
+    private static final long MAX_ARCHIVE_INPUT_BYTES = 256L * 1024L * 1024L;
+    private static final long MAX_ARCHIVE_EXPANDED_BYTES = 256L * 1024L * 1024L;
+    private static final int MAX_ARCHIVE_ENTRIES = 20_000;
 
     private ContentArchive() {}
 
@@ -84,9 +92,12 @@ final class ContentArchive {
                 try (InputStream input = context.getContentResolver().openInputStream(uri);
                      FileOutputStream output = new FileOutputStream(temporary)) {
                     if (input == null) throw new IOException("Cannot open content file");
-                    ContentFiles.copy(input, output, new byte[ContentFiles.BUFFER_SIZE]);
+                    copyBounded(input, output, new byte[ContentFiles.BUFFER_SIZE], MAX_ARCHIVE_INPUT_BYTES);
                 }
                 source = temporary;
+            }
+            if (source.length() > MAX_ARCHIVE_INPUT_BYTES) {
+                throw new IOException("Archive file exceeds the supported size limit");
             }
             progress.accept(10);
             boolean world = worldOnly || name.toLowerCase(Locale.ROOT).endsWith(".mcworld")
@@ -95,7 +106,9 @@ final class ContentArchive {
             boolean packOnly = lowerName.endsWith(".mcpack") || lowerName.endsWith(".mcaddon");
             Result result = importZip(context, source, worlds, resources, behaviors, skins, world, packOnly,
                     value -> progress.accept(10 + value * 90 / 100));
-            if (result.total() == 0) throw new IOException("No valid content found in " + name);
+            if (result.total() == 0 && result.duplicatePacks == 0) {
+                throw new IOException("No valid content found in " + name);
+            }
             progress.accept(100);
             return result;
         } finally {
@@ -113,8 +126,16 @@ final class ContentArchive {
             List<Entry> nested = new ArrayList<>();
             String worldPrefix = null;
             Enumeration<? extends ZipEntry> enumeration = zip.entries();
+            long declaredExpandedBytes = 0;
             while (enumeration.hasMoreElements()) {
                 ZipEntry entry = enumeration.nextElement();
+                if (entries.size() >= MAX_ARCHIVE_ENTRIES) throw new IOException("Archive contains too many entries");
+                if (!entry.isDirectory() && entry.getSize() > 0) {
+                    if (entry.getSize() > MAX_ARCHIVE_EXPANDED_BYTES - declaredExpandedBytes) {
+                        throw new IOException("Archive expands beyond the supported size limit");
+                    }
+                    declaredExpandedBytes += entry.getSize();
+                }
                 String name = normalize(entry.getName());
                 if (name.isEmpty()) continue;
                 Entry item = new Entry(entry, name);
@@ -170,6 +191,10 @@ final class ContentArchive {
                     if (!pack.types[i] || destinations[i] == null) continue;
                     final int task = completed++;
                     try {
+                        if (pack.uuid != null && hasPackUuid(destinations[i], pack.uuid)) {
+                            result.duplicatePacks++;
+                            continue;
+                        }
                         extract(zip, pack.entries, pack.prefix, destinations[i],
                                 value -> progress.accept((task * 100 + value) / totalTasks));
                         if (i == 0) result.resources++;
@@ -197,21 +222,26 @@ final class ContentArchive {
                 }
             }
         }
-        if (result.total() == 0 && !result.warnings.isEmpty()) throw new IOException(String.join("\n", result.warnings));
+        if (result.total() == 0 && result.duplicatePacks == 0 && !result.warnings.isEmpty()) {
+            throw new IOException(String.join("\n", result.warnings));
+        }
         progress.accept(100);
         return result;
     }
 
     private static Pack readPack(ZipFile zip, Entry entry) {
+        if (entry.zip.getSize() > MAX_PACK_MANIFEST_BYTES) return null;
         try (InputStream input = zip.getInputStream(entry.zip)) {
             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
-            ContentFiles.copy(input, output, new byte[8192]);
+            copyBounded(input, output, new byte[8192], MAX_PACK_MANIFEST_BYTES);
             String text = new String(output.toByteArray(), StandardCharsets.UTF_8);
             if (text.startsWith("\uFEFF")) text = text.substring(1);
             JSONObject manifest = new JSONObject(ContentFiles.withoutComments(text));
             JSONArray modules = manifest.optJSONArray("modules");
             if (modules == null) return null;
             Pack pack = new Pack(entry.name.substring(0, entry.name.length() - "manifest.json".length()));
+            JSONObject header = manifest.optJSONObject("header");
+            if (header != null) pack.uuid = normalizeUuid(header.optString("uuid", null));
             for (int i = 0; i < modules.length(); i++) {
                 JSONObject module = modules.optJSONObject(i);
                 if (module == null) continue;
@@ -224,6 +254,34 @@ final class ContentArchive {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private static String normalizeUuid(String uuid) {
+        if (uuid == null || uuid.trim().isEmpty()) return null;
+        return uuid.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean hasPackUuid(File parent, String expectedUuid) throws IOException {
+        if (!parent.exists()) return false;
+        File[] children = parent.listFiles();
+        if (children == null) throw new IOException("Cannot inspect existing pack library");
+        for (File child : children) {
+            if (!ContentFiles.visible(child) || !child.isDirectory()) continue;
+            File manifestFile = new File(child, "manifest.json");
+            if (!manifestFile.isFile() || manifestFile.length() <= 0
+                    || manifestFile.length() > MAX_PACK_MANIFEST_BYTES) continue;
+            try {
+                String text = Files.readString(manifestFile.toPath(), StandardCharsets.UTF_8);
+                if (text.startsWith("\uFEFF")) text = text.substring(1);
+                JSONObject manifest = new JSONObject(ContentFiles.withoutComments(text));
+                JSONObject header = manifest.optJSONObject("header");
+                String existingUuid = header == null ? null : normalizeUuid(header.optString("uuid", null));
+                if (expectedUuid.equals(existingUuid)) return true;
+            } catch (Exception ignored) {
+                // An invalid existing manifest cannot establish an identifier match.
+            }
+        }
+        return false;
     }
 
     private static void extract(ZipFile zip, List<Entry> entries, String prefix,
@@ -253,7 +311,8 @@ final class ContentArchive {
                 if (entry.zip.isDirectory()) continue;
                 try (InputStream input = zip.getInputStream(entry.zip);
                      OutputStream output = new BufferedOutputStream(new FileOutputStream(target.toFile()), 32 * 1024)) {
-                    long copied = ContentFiles.copy(input, output, buffer);
+                    long copied = copyBounded(input, output, buffer,
+                            MAX_ARCHIVE_EXPANDED_BYTES - written);
                     if (entry.zip.getSize() >= 0 && copied != entry.zip.getSize()) throw new IOException("Incomplete file: " + relative);
                     written += copied;
                 }
@@ -273,6 +332,19 @@ final class ContentArchive {
     private static boolean isMarker(String name) {
         return name.equals("manifest.json") || name.endsWith("/manifest.json")
                 || name.equals("level.dat") || name.endsWith("/level.dat");
+    }
+
+    private static long copyBounded(InputStream input, OutputStream output, byte[] buffer, long remaining)
+            throws IOException {
+        long copied = 0;
+        int count;
+        while ((count = input.read(buffer)) != -1) {
+            if (Thread.currentThread().isInterrupted()) throw new IOException("Operation interrupted");
+            if (count > remaining - copied) throw new IOException("Archive expands beyond the supported size limit");
+            output.write(buffer, 0, count);
+            copied += count;
+        }
+        return copied;
     }
 
     private static String normalize(String name) throws IOException {

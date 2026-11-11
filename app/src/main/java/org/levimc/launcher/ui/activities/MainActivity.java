@@ -44,7 +44,6 @@ import org.levimc.launcher.ui.dialogs.CustomAlertDialog;
 import org.levimc.launcher.ui.views.MainViewModel;
 import org.levimc.launcher.ui.views.MainViewModelFactory;
 import org.levimc.launcher.util.ApkImportManager;
-import org.levimc.launcher.util.GithubReleaseUpdater;
 import org.levimc.launcher.util.LanguageManager;
 import org.levimc.launcher.util.InstanceShortcutManager;
 import org.levimc.launcher.util.LauncherStorage;
@@ -125,9 +124,7 @@ import okhttp3.OkHttpClient;
         closeLauncherRestartAfterFirstDraw();
         setupNavBar();
         setupManagersAndHandlers();
-        if (!isInstanceShortcutIntent()) {
-            new GithubReleaseUpdater(this, "LiteLDev", "LeviLauncher-Android", permissionResultLauncher).checkUpdateOnLaunch();
-        }
+        applyDashboardPersonalization();
         showEulaIfNeeded();
         setupOnBackPressedCallback();
 
@@ -387,7 +384,7 @@ import okhttp3.OkHttpClient;
                      popup.dismiss();
 
                      accountLoadingDialog = DialogUtils.ensure(MainActivity.this, accountLoadingDialog);
-                     DialogUtils.showWithMessage(accountLoadingDialog, getString(R.string.ms_login_auth_xbox_device));
+                     DialogUtils.showWithMessage(accountLoadingDialog, getString(R.string.ms_refreshing_account));
 
                      accountExecutor.execute(() -> {
                          try {
@@ -500,6 +497,8 @@ import okhttp3.OkHttpClient;
 
     private void initializeVersionManager() {
         binding.launchButton.setEnabled(false);
+        binding.homeProfileStatus.setText(R.string.home_loading_profiles);
+        binding.homeManageInstances.setVisibility(View.GONE);
         versionManager = VersionManager.getIfInitialized();
         if (versionManager != null) {
             onVersionManagerReady();
@@ -515,13 +514,13 @@ import okhttp3.OkHttpClient;
     private void onVersionManagerReady() {
         if (versionManager == null || binding == null) return;
         fileHandler = new FileHandler(this, viewModel, versionManager);
-        binding.launchButton.setEnabled(true);
         if (!handleInstanceShortcutLaunch()) {
             setTextMinecraftVersion();
             updateViewModelVersion();
             repairNeededVersions();
             handleVersionDependentIntent();
         }
+        updateHomeProfileStatus();
         refreshContentCounts();
     }
 
@@ -682,19 +681,54 @@ import okhttp3.OkHttpClient;
     @Override
     protected void onResume() {
         super.onResume();
+        applyDashboardPersonalization();
         refreshAccountHeaderUI();
         if (!launcherInitialized) {
             showPostEulaFlow();
             return;
         }
         if (versionManager != null) {
+            versionManager.refreshInstalledMinecraftIfChanged();
             setTextMinecraftVersion();
+            updateHomeProfileStatus();
             viewModel.refreshMods();
             refreshContentCounts();
         }
-        if (binding != null && versionManager != null) {
-            binding.launchButton.setEnabled(true);
+    }
+
+    private void applyDashboardPersonalization() {
+        if (binding == null) return;
+        View mods = findViewById(R.id.mod_card);
+        View content = findViewById(R.id.content_mgmt_card);
+        View shortcuts = findViewById(R.id.misc_card);
+        if (mods != null) mods.setVisibility(org.levimc.launcher.util.LocalPersonalizationStore.isDashboardVisible(
+                this, org.levimc.launcher.util.LocalPersonalizationStore.DASHBOARD_MODS) ? View.VISIBLE : View.GONE);
+        if (content != null) content.setVisibility(org.levimc.launcher.util.LocalPersonalizationStore.isDashboardVisible(
+                this, org.levimc.launcher.util.LocalPersonalizationStore.DASHBOARD_CONTENT) ? View.VISIBLE : View.GONE);
+
+        setDashboardAction(R.id.misc_curseforge_row, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_CURSEFORGE);
+        setDashboardAction(R.id.misc_ai_assistant_row, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_AI);
+        setDashboardAction(R.id.misc_pkg_row, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_PACKAGES);
+        setDashboardAction(R.id.misc_external_mods_row, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_EXTERNAL_MODS);
+        setDashboardAction(R.id.misc_accounts_row, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_ACCOUNTS);
+        setDashboardAction(R.id.misc_quick_launch_row, org.levimc.launcher.util.LocalPersonalizationStore.ACTION_QUICK_LAUNCH);
+
+        boolean enabled = org.levimc.launcher.util.LocalPersonalizationStore.isDashboardVisible(
+                this, org.levimc.launcher.util.LocalPersonalizationStore.DASHBOARD_SHORTCUTS);
+        int[] actionIds = {R.id.misc_curseforge_row, R.id.misc_ai_assistant_row, R.id.misc_pkg_row,
+                R.id.misc_external_mods_row, R.id.misc_accounts_row, R.id.misc_quick_launch_row};
+        boolean hasVisibleAction = false;
+        for (int id : actionIds) {
+            View action = findViewById(id);
+            if (action != null && action.getVisibility() == View.VISIBLE) hasVisibleAction = true;
         }
+        if (shortcuts != null) shortcuts.setVisibility(enabled && hasVisibleAction ? View.VISIBLE : View.GONE);
+    }
+
+    private void setDashboardAction(int viewId, String preferenceKey) {
+        View action = findViewById(viewId);
+        if (action != null) action.setVisibility(org.levimc.launcher.util.LocalPersonalizationStore.isDashboardVisible(
+                this, preferenceKey) ? View.VISIBLE : View.GONE);
     }
 
     @SuppressLint({"ClickableViewAccessibility", "UnsafeIntentLaunch"})
@@ -704,6 +738,9 @@ import okhttp3.OkHttpClient;
         DynamicAnim.applyPressScale(binding.launchButton);
         binding.selectVersionButton.setOnClickListener(v -> showVersionSelectDialog());
         DynamicAnim.applyPressScale(binding.selectVersionButton);
+        binding.homeManageInstances.setOnClickListener(v ->
+                startActivity(new Intent(this, InstancesActivity.class)));
+        DynamicAnim.applyPressScale(binding.homeManageInstances);
 
         FeatureSettings.init(getApplicationContext());
         showRandomTip();
@@ -799,6 +836,7 @@ import okhttp3.OkHttpClient;
 
     private void initMiscellaneousSection() {
         binding.miscCurseforgeRow.setOnClickListener(v -> startActivity(new Intent(this, CurseForgeActivity.class)));
+        binding.miscAiAssistantRow.setOnClickListener(v -> startActivity(new Intent(this, AIAssistantActivity.class)));
         binding.miscPkgRow.setOnClickListener(v -> startActivity(org.levimc.launcher.ui.packages.PackagesActivity.intent(
                 this, versionManager != null ? versionManager.getSelectedVersion() : null, null)));
         binding.miscExternalModsRow.setOnClickListener(v -> startActivity(new Intent(this, ExternalModsActivity.class)));
@@ -815,6 +853,75 @@ import okhttp3.OkHttpClient;
         if (!isVersionManagerReady()) return;
         performActualLaunch();
     }
+
+    private void updateHomeProfileStatus() {
+        if (binding == null) return;
+        GameVersion selected = versionManager != null ? versionManager.getSelectedVersion() : null;
+        VersionManager.MinecraftInstallationState installationState = versionManager != null
+                ? versionManager.getMinecraftInstallationState()
+                : VersionManager.MinecraftInstallationState.CHECK_UNAVAILABLE;
+
+        if (installationState == VersionManager.MinecraftInstallationState.NOT_FOUND) {
+            if (selected == null) {
+                binding.homeProfileStatus.setText(R.string.home_installation_not_found);
+            } else {
+                binding.homeProfileStatus.setText(getString(
+                        R.string.home_profile_installation_missing,
+                        getInstanceDisplayName(selected)));
+            }
+            binding.homeManageInstances.setVisibility(View.VISIBLE);
+            binding.launchButton.setEnabled(false);
+            return;
+        }
+        if (installationState == VersionManager.MinecraftInstallationState.CHECK_UNAVAILABLE) {
+            if (selected == null) {
+                binding.homeProfileStatus.setText(R.string.home_installation_check_unavailable);
+            } else {
+                binding.homeProfileStatus.setText(getString(
+                        R.string.home_profile_installation_unavailable,
+                        getInstanceDisplayName(selected)));
+            }
+            binding.homeManageInstances.setVisibility(View.VISIBLE);
+            // A failed package query is not proof of uninstall. Keep the existing
+            // launch path available when a selected profile is already known.
+            binding.launchButton.setEnabled(selected != null);
+            return;
+        }
+        if (installationState == VersionManager.MinecraftInstallationState.METADATA_CHANGED) {
+            if (selected == null) {
+                binding.homeProfileStatus.setText(getInstallationStatusText());
+                binding.homeManageInstances.setVisibility(View.VISIBLE);
+                binding.launchButton.setEnabled(false);
+            } else {
+                binding.homeProfileStatus.setText(getString(
+                        R.string.home_profile_installation_updated,
+                        getInstanceDisplayName(selected)));
+                binding.homeManageInstances.setVisibility(View.GONE);
+                binding.launchButton.setEnabled(true);
+            }
+            if (versionManager != null) {
+                versionManager.acknowledgeMinecraftInstallationMetadataChange();
+            }
+            return;
+        }
+        if (selected == null) {
+            binding.homeProfileStatus.setText(R.string.home_no_profiles_available);
+            binding.homeManageInstances.setVisibility(View.VISIBLE);
+            binding.launchButton.setEnabled(false);
+            return;
+        }
+
+        String profile = getInstanceDisplayName(selected);
+        String version = getInstanceVersionText(selected);
+        String detail = TextUtils.isEmpty(version) || version.equals(profile)
+                ? profile : profile + " · " + version;
+        binding.homeProfileStatus.setText(getString(
+                selected.isInstalled ? R.string.home_profile_installed : R.string.home_profile_custom,
+                detail));
+        binding.homeManageInstances.setVisibility(View.GONE);
+        binding.launchButton.setEnabled(true);
+    }
+
     private void performActualLaunch() {
         binding.launchButton.setEnabled(false);
         LaunchTrace trace = LaunchTrace.create(null);
@@ -858,6 +965,7 @@ import okhttp3.OkHttpClient;
             launchIntent.putExtra(LaunchTrace.EXTRA_SESSION_ID, trace.getSessionId());
             launchIntent.putExtra(LaunchTrace.EXTRA_STARTED_ELAPSED_MS,
                     android.os.SystemClock.elapsedRealtime() - trace.elapsedMs());
+            binding.homeProfileStatus.setText(R.string.home_launching);
             minecraftLauncher.launch(launchIntent, version, new MinecraftLauncher.LaunchCallback() {
                 @Override
                 public void onLaunchStarted() {
@@ -868,19 +976,34 @@ import okhttp3.OkHttpClient;
                 public void onLaunchFailed(Exception e) {
                     trace.error("Launch failed before loading screen", e.getMessage());
                     runOnUiThread(() -> {
-                        if (binding != null) binding.launchButton.setEnabled(true);
+                        if (binding != null) {
+                            updateLaunchFailureStatus();
+                        }
                     });
                 }
             });
         } catch (Exception e) {
             trace.error("Launch failed before activity start", e.getMessage());
-            binding.launchButton.setEnabled(true);
+            updateLaunchFailureStatus();
             new CustomAlertDialog(this)
                     .setTitleText(getString(R.string.dialog_title_launch_failed))
                     .setMessage(getString(R.string.dialog_message_launch_failed, e.getMessage()))
                     .setPositiveButton(getString(R.string.dialog_positive_ok), null)
                     .show();
         }
+    }
+
+    private void updateLaunchFailureStatus() {
+        if (binding == null) return;
+        if (versionManager != null
+                && versionManager.getMinecraftInstallationState()
+                == VersionManager.MinecraftInstallationState.NOT_FOUND) {
+            updateHomeProfileStatus();
+            return;
+        }
+        binding.launchButton.setEnabled(versionManager != null
+                && versionManager.getSelectedVersion() != null);
+        binding.homeProfileStatus.setText(R.string.home_launch_failed);
     }
 
     private Intent createMinecraftLaunchIntent() {
@@ -918,6 +1041,9 @@ import okhttp3.OkHttpClient;
         List<GameVersion> custom = versionManager.getCustomVersions();
         if (installed != null) allVersions.addAll(installed);
         if (custom != null) allVersions.addAll(custom);
+        allVersions.sort((left, right) -> Boolean.compare(
+                org.levimc.launcher.util.LocalPersonalizationStore.isProfileFavorite(this, right),
+                org.levimc.launcher.util.LocalPersonalizationStore.isProfileFavorite(this, left)));
 
         View popupView = LayoutInflater.from(this).inflate(R.layout.popup_instance_selector, null);
         new PersonalizationManager(this).applyAccentToView(popupView, this);
@@ -932,11 +1058,29 @@ import okhttp3.OkHttpClient;
         RecyclerView recycler = popupView.findViewById(R.id.recycler_instances);
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
+        android.widget.EditText searchInput = popupView.findViewById(R.id.search_input);
+        TextView emptyState = popupView.findViewById(R.id.selector_empty_state);
+        TextView installationStatus = popupView.findViewById(R.id.selector_installation_status);
+        installationStatus.setText(getInstallationStatusText());
+        Button manageInstances = popupView.findViewById(R.id.selector_manage_instances);
+        if (allVersions.isEmpty()) {
+            searchInput.setVisibility(View.GONE);
+            recycler.setVisibility(View.GONE);
+            emptyState.setVisibility(View.VISIBLE);
+            manageInstances.setVisibility(View.VISIBLE);
+            manageInstances.setOnClickListener(v -> {
+                popup.dismiss();
+                startActivity(new Intent(this, InstancesActivity.class));
+            });
+        } else {
+            emptyState.setVisibility(View.GONE);
+            manageInstances.setVisibility(View.GONE);
+        }
+
         GameVersion selectedVersion = versionManager.getSelectedVersion();
         InstancePopupAdapter adapter = new InstancePopupAdapter(allVersions, selectedVersion);
         recycler.setAdapter(adapter);
 
-        android.widget.EditText searchInput = popupView.findViewById(R.id.search_input);
         searchInput.addTextChangedListener(new android.text.TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -949,6 +1093,8 @@ import okhttp3.OkHttpClient;
             versionManager.selectVersion(version);
             viewModel.setCurrentVersion(version);
             setTextMinecraftVersion();
+            updateHomeProfileStatus();
+            refreshContentCounts();
             popup.dismiss();
         });
 
@@ -958,6 +1104,29 @@ import okhttp3.OkHttpClient;
         int anchorWidth = binding.selectVersionButton.getWidth();
         int xOffset = anchorWidth - popupWidth;
         popup.showAsDropDown(binding.selectVersionButton, xOffset, 4);
+    }
+
+    private String getInstallationStatusText() {
+        if (versionManager == null) return getString(R.string.home_installation_check_unavailable);
+        switch (versionManager.getMinecraftInstallationState()) {
+            case DETECTED:
+                List<GameVersion> installedVersions = versionManager.getInstalledVersions();
+                String version = installedVersions.isEmpty()
+                        ? getString(R.string.unknown)
+                        : getInstanceVersionText(installedVersions.get(0));
+                return getString(R.string.home_installation_detected, version);
+            case METADATA_CHANGED:
+                List<GameVersion> updatedVersions = versionManager.getInstalledVersions();
+                String updatedVersion = updatedVersions.isEmpty()
+                        ? getString(R.string.unknown)
+                        : getInstanceVersionText(updatedVersions.get(0));
+                return getString(R.string.home_installation_updated, updatedVersion);
+            case NOT_FOUND:
+                return getString(R.string.home_installation_not_found);
+            case CHECK_UNAVAILABLE:
+            default:
+                return getString(R.string.home_installation_check_unavailable);
+        }
     }
 
     private static class InstancePopupAdapter extends RecyclerView.Adapter<InstancePopupAdapter.VH> {
@@ -1015,7 +1184,8 @@ import okhttp3.OkHttpClient;
             holder.version.setVisibility(TextUtils.isEmpty(versionText) ? View.GONE : View.VISIBLE);
             holder.itemView.setActivated(isSelected);
             holder.check.setVisibility(isSelected ? View.VISIBLE : View.GONE);
-            holder.tag.setVisibility(View.GONE);
+            holder.tag.setText(v.isInstalled ? R.string.tag_installed : R.string.tag_custom);
+            holder.tag.setVisibility(View.VISIBLE);
             applyInstanceSelectionStyle(holder, isSelected);
 
             holder.itemView.setOnClickListener(_v -> {

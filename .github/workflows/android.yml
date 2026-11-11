@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - "**"
-    tags:
-      - v*
   pull_request:
     branches:
       - "**"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -18,33 +19,29 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Validate release content
         run: python3 scripts/validate_release_content.py
 
   build:
     needs: validate
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           submodules: "recursive"
 
       - name: Prepare google-services.json
-        env:
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
         run: |
           set -euo pipefail
-
-          if [ -z "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
-            echo "HAS_GOOGLE_SERVICES=false" >> "$GITHUB_ENV"
-            echo "GOOGLE_SERVICES_JSON_BASE64 is not configured; using a CI-only Firebase placeholder for compile checks."
-            mkdir -p app
-            cat > app/google-services.json <<'JSON'
+          echo "Using a CI-only Firebase placeholder for compile checks; no Firebase credential is injected."
+          mkdir -p app
+          cat > app/google-services.json <<'JSON'
           {
             "project_info": {
               "project_number": "000000000000",
@@ -62,7 +59,7 @@ jobs:
                 "oauth_client": [],
                 "api_key": [
                   {
-                    "current_key": "AIzaSyCIOnlyPlaceholderKey"
+                    "current_key": ""
                   }
                 ],
                 "services": {
@@ -75,65 +72,36 @@ jobs:
             "configuration_version": "1"
           }
           JSON
-            exit 0
-          fi
-
-          mkdir -p app
-          printf '%s' "${GOOGLE_SERVICES_JSON_BASE64}" | base64 --decode > app/google-services.json
-          python3 -m json.tool app/google-services.json > /dev/null
-          python3 - <<'PY'
-          import json
-          import sys
-
-          expected = "org.levimc.launcher"
-          with open("app/google-services.json", encoding="utf-8") as fp:
-              data = json.load(fp)
-
-          package_names = {
-              client.get("client_info", {})
-              .get("android_client_info", {})
-              .get("package_name")
-              for client in data.get("client", [])
-          }
-          if expected not in package_names:
-              actual = ", ".join(sorted(name for name in package_names if name)) or "<none>"
-              print(
-                  f"google-services.json package_name mismatch: expected {expected}, got {actual}",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
-          PY
-          echo "HAS_GOOGLE_SERVICES=true" >> "$GITHUB_ENV"
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           java-version: "21"
           distribution: temurin
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           packages: platform-tools
 
       - name: Accept Licenses
         run: yes | sdkmanager --licenses
 
-      - name: Install Build Tools 35.0.0
-        run: sdkmanager "build-tools;35.0.0"
+      - name: Install Android SDK platform and build tools
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "cmake;3.22.1"
 
       - name: Verify installed SDK Packages
         run: sdkmanager --list
 
       - name: Setup Xmake
-        uses: xmake-io/github-action-setup-xmake@v1
+        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1
         with:
           xmake-version: "2.9.9"
           actions-cache-folder: ".xmake-cache"
           actions-cache-key: "ubuntulinux-ci"
 
       - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
+        uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779 # v1
         with:
           ndk-version: r28c
           link-to-sdk: true
@@ -141,137 +109,8 @@ jobs:
       - name: Grant Execute Permission to gradlew
         run: chmod +x ./gradlew
 
-      - name: Inject API Keys
-        env:
-          CF_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
-        run: echo "curseforge.api_key=${CF_API_KEY}" >> local.properties
-
-      - name: Build Debug, Beta and Unsigned Release APKs
-        if: env.HAS_GOOGLE_SERVICES == 'true'
-        run: ./gradlew assembleDebug assembleBeta assembleRelease
-
-      - name: Build Debug APK Without Firebase Secrets
-        if: env.HAS_GOOGLE_SERVICES == 'false'
+      - name: Build Debug APK for CI validation
         run: ./gradlew assembleDebug
 
-      - name: Upload Debug APK Without Firebase Secrets
-        if: env.HAS_GOOGLE_SERVICES == 'false'
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: NEXUS-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          
       - name: App Unit Tests
-        if: env.HAS_GOOGLE_SERVICES == 'true'
         run: ./gradlew :app:testDebugUnitTest
-
-      - name: Upload Debug APK
-        if: env.HAS_GOOGLE_SERVICES == 'true'
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: LeviLauncher-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-
-      - name: Upload R8 mappings
-        if: env.HAS_GOOGLE_SERVICES == 'true'
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: LeviLauncher-r8-mappings-${{ github.sha }}
-          path: |
-            app/build/outputs/mapping/debug/
-            app/build/outputs/mapping/beta/
-            app/build/outputs/mapping/release/
-          if-no-files-found: error
-
-      - name: Upload Unsigned Release APK
-        if: env.HAS_GOOGLE_SERVICES == 'true'
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: LeviLauncher-release-unsigned-apk
-          path: app/build/outputs/apk/release/*-unsigned.apk
-
-      - name: Upload Beta APK
-        if: env.HAS_GOOGLE_SERVICES == 'true'
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: LeviLauncher-beta-apk
-          path: app/build/outputs/apk/beta/*.apk
-
-      - name: Sign Release APK
-        if: env.HAS_GOOGLE_SERVICES == 'true' && startsWith(github.ref, 'refs/tags/')
-        uses: kevin-david/zipalign-sign-android-release@v2
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY_STORE }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-          zipAlign: true
-        env:
-          BUILD_TOOLS_VERSION: "35.0.0"
-
-      - name: Rename APK with tag
-        if: env.HAS_GOOGLE_SERVICES == 'true' && startsWith(github.ref, 'refs/tags/')
-        run: |
-          TAG=${GITHUB_REF_NAME}
-          SIGNED_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
-          APK_DST="LeviLauncher-${TAG}-release.apk"
-          cp "$SIGNED_APK" "$APK_DST"
-          echo "Signed APK renamed to $APK_DST"
-
-      - name: Upload Signed APK Artifact
-        if: env.HAS_GOOGLE_SERVICES == 'true' && startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: LeviLauncher-${{ github.ref_name }}-release.apk
-          path: LeviLauncher-${{ github.ref_name }}-release.apk
-
-      - name: Generate GitHub release notes
-        if: env.HAS_GOOGLE_SERVICES == 'true' && startsWith(github.ref, 'refs/tags/')
-        run: python3 scripts/render_release_notes.py resources/launcher/changelog.json release-notes.md
-
-      - name: Release APK to GitHub Releases
-        if: env.HAS_GOOGLE_SERVICES == 'true' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: LeviLauncher-${{ github.ref_name }}-release.apk
-          body_path: release-notes.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify Discord
-        if: env.HAS_GOOGLE_SERVICES == 'true' && startsWith(github.ref, 'refs/tags/')
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          APK_URL: "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/LeviLauncher-${{ github.ref_name }}-release.apk"
-          TAG_NAME: ${{ github.ref_name }}
-        run: |
-          EMBED_TITLE="🚀 LeviLauncher Update!"
-          EMBED_DESC="A new version of **LeviLauncher for Android** is ready."
-          EMBED_COLOR=5814783
-          THUMB_URL='https://avatars.githubusercontent.com/u/78095377?s=200&v=4'
-
-          curl -H "Content-Type: application/json" \
-          -d "{
-            \"embeds\": [{
-              \"title\": \"$EMBED_TITLE\",
-              \"description\": \"$EMBED_DESC\",
-              \"color\": $EMBED_COLOR,
-              \"thumbnail\": { \"url\": \"$THUMB_URL\" },
-              \"fields\": [
-                {
-                  \"name\": \"📦 Version\",
-                  \"value\": \"\`$TAG_NAME\`\",
-                  \"inline\": true
-                },
-                {
-                  \"name\": \"🔗 Download\",
-                  \"value\": \"[**Click here to download APK**]($APK_URL)\",
-                  \"inline\": true
-                }
-              ]
-            }]
-          }" \
-          "$DISCORD_WEBHOOK"

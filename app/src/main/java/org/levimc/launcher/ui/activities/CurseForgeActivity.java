@@ -91,17 +91,17 @@ public class CurseForgeActivity extends BaseActivity {
     }
 
     private void setupData() {
-        categories.add(new Category("All", 0));
-        categories.add(new Category("Addons", 4984));
-        categories.add(new Category("Maps", 6913));
-        categories.add(new Category("Skins", 6925));
-        categories.add(new Category("Textures", 6929));
-        categories.add(new Category("Scripts", 6940));
+        categories.add(new Category(getString(R.string.catalog_category_all), 0));
+        categories.add(new Category(getString(R.string.catalog_category_addons), 4984));
+        categories.add(new Category(getString(R.string.catalog_category_maps), 6913));
+        categories.add(new Category(getString(R.string.catalog_category_skins), 6925));
+        categories.add(new Category(getString(R.string.catalog_category_textures), 6929));
+        categories.add(new Category(getString(R.string.catalog_category_scripts), 6940));
 
-        sortOptions.add(new SortOption("Popular", CurseForgeClient.SORT_POPULARITY, "desc"));
-        sortOptions.add(new SortOption("Downloads", CurseForgeClient.SORT_TOTAL_DOWNLOADS, "desc"));
-        sortOptions.add(new SortOption("Recently updated", CurseForgeClient.SORT_LAST_UPDATED, "desc"));
-        sortOptions.add(new SortOption("Name", CurseForgeClient.SORT_NAME, "asc"));
+        sortOptions.add(new SortOption(getString(R.string.catalog_sort_popular), CurseForgeClient.SORT_POPULARITY, "desc"));
+        sortOptions.add(new SortOption(getString(R.string.catalog_sort_downloads), CurseForgeClient.SORT_TOTAL_DOWNLOADS, "desc"));
+        sortOptions.add(new SortOption(getString(R.string.catalog_sort_recent), CurseForgeClient.SORT_LAST_UPDATED, "desc"));
+        sortOptions.add(new SortOption(getString(R.string.catalog_sort_name), CurseForgeClient.SORT_NAME, "asc"));
     }
 
     private int dp(float value) {
@@ -217,6 +217,13 @@ public class CurseForgeActivity extends BaseActivity {
     }
 
     private void loadContent() {
+        if (!client.isApiEnabled()) {
+            loadingProgress.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.GONE);
+            emptyMessage.setText(R.string.catalog_unavailable);
+            emptyMessage.setVisibility(View.VISIBLE);
+            return;
+        }
         String query = searchBox.getText().toString().trim();
         int checkedId = categoryGroup.getCheckedRadioButtonId();
         Category category = null;
@@ -250,13 +257,14 @@ public class CurseForgeActivity extends BaseActivity {
                                 }
                                 adapter.setContents(result.data, requestedPage, totalPages);
                                 boolean empty = result.data.isEmpty();
-                                emptyMessage.setText(R.string.no_mods_found);
+                                emptyMessage.setText(R.string.catalog_no_results);
                                 emptyMessage.setVisibility(empty ? View.VISIBLE : View.GONE);
                                 recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
                                 if (!empty) recyclerView.scrollToPosition(0);
                             } else {
                                 adapter.setContents(Collections.emptyList(), 1, 1);
                                 recyclerView.setVisibility(View.GONE);
+                                emptyMessage.setText(R.string.catalog_unavailable);
                                 emptyMessage.setVisibility(View.VISIBLE);
                             }
                         });
@@ -269,12 +277,12 @@ public class CurseForgeActivity extends BaseActivity {
                             loadingProgress.setVisibility(View.GONE);
                             if (adapter.getItemCount() == 0) {
                                 recyclerView.setVisibility(View.GONE);
-                                emptyMessage.setText(getString(R.string.error_message_format, error.getMessage()));
+                                emptyMessage.setText(R.string.catalog_unavailable);
                                 emptyMessage.setVisibility(View.VISIBLE);
                             } else {
                                 recyclerView.setVisibility(View.VISIBLE);
                                 android.widget.Toast.makeText(CurseForgeActivity.this,
-                                        getString(R.string.error_message_format, error.getMessage()),
+                                        getString(R.string.catalog_refresh_failed),
                                         android.widget.Toast.LENGTH_SHORT).show();
                             }
                         });

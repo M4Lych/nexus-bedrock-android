@@ -10,7 +10,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="48dp"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
         android:layout_marginTop="12dp"
@@ -55,6 +55,17 @@
         android:layout_marginHorizontal="12dp"
         android:background="@drawable/bg_instances_tab" />
 
+    <TextView
+        android:id="@+id/selector_installation_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:fontFamily="@font/misans" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_instances"
         android:layout_width="match_parent"
@@ -66,5 +77,32 @@
         android:clipToPadding="false"
         android:overScrollMode="never"
         android:nestedScrollingEnabled="true" />
+
+    <TextView
+        android:id="@+id/selector_empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="8dp"
+        android:gravity="center"
+        android:text="@string/home_no_profiles_available"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:fontFamily="@font/misans"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/selector_manage_instances"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginBottom="12dp"
+        android:text="@string/manage_instances"
+        android:textAllCaps="false"
+        android:textSize="13sp"
+        android:fontFamily="@font/misans"
+        android:visibility="gone" />
 
 </LinearLayout>

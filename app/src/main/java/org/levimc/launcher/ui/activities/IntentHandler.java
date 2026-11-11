@@ -75,12 +75,7 @@ public class IntentHandler extends BaseActivity {
     }
 
     private void handleMinecraftUri(Intent originalIntent, Uri uri) {
-        Log.d(TAG, "Handling Minecraft URI: " + uri.toString());
-        
         MinecraftUriHandler.MinecraftUri parsedUri = MinecraftUriHandler.parse(uri);
-        if (parsedUri != null) {
-            Log.d(TAG, "Parsed Minecraft URI action: " + parsedUri.action);
-        }
         
         Intent newIntent = new Intent(originalIntent);
         newIntent.putExtra("MINECRAFT_URI", uri.toString());

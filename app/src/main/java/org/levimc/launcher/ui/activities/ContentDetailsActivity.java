@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.button.MaterialButton;
 
 import org.levimc.launcher.R;
@@ -39,6 +40,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -49,6 +51,10 @@ import okhttp3.Response;
 public class ContentDetailsActivity extends BaseActivity {
 
     public static final String EXTRA_CONTENT = "extra_content";
+
+    private static final class DirectDownloadUnavailableException extends IOException {
+        DirectDownloadUnavailableException() { super("Direct download unavailable"); }
+    }
 
     private Content content;
     private ImageView icon;
@@ -66,6 +72,8 @@ public class ContentDetailsActivity extends BaseActivity {
     private ContentImporter contentImporter;
     private VersionManager versionManager;
     private CurseForgeClient client;
+    private static final long MAX_CATALOG_DOWNLOAD_BYTES = 100L * 1024L * 1024L;
+    private volatile okhttp3.Call activeDownload;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +113,9 @@ public class ContentDetailsActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
+        okhttp3.Call call = activeDownload;
+        if (call != null) call.cancel();
+        downloadExecutor.shutdownNow();
         if (summary != null) {
             ViewGroup parent = (ViewGroup) summary.getParent();
             if (parent != null) parent.removeView(summary);
@@ -120,13 +131,13 @@ public class ContentDetailsActivity extends BaseActivity {
         settings.setJavaScriptEnabled(false);
         settings.setDomStorageEnabled(false);
         settings.setDatabaseEnabled(false);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setTextZoom(100);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setLoadsImagesAutomatically(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         summary.setVerticalScrollBarEnabled(false);
         summary.setHorizontalScrollBarEnabled(false);
         summary.setWebViewClient(new WebViewClient() {
@@ -188,13 +199,14 @@ public class ContentDetailsActivity extends BaseActivity {
         } else {
             info.append((long) count);
         }
-        info.append(" downloads");
+        info.append(" ").append(getString(R.string.catalog_download_count_label));
         if (content.categories != null && !content.categories.isEmpty() && content.categories.get(0) != null) {
             info.append("  ·  ").append(content.categories.get(0).name);
         }
         if (content.dateModified != null && content.dateModified.length() >= 10) {
             info.append("  ·  ").append(content.dateModified, 0, 10);
         }
+        info.append("  ·  ").append(getString(R.string.catalog_source_curseforge));
         metadata.setText(info.toString());
         org.levimc.launcher.util.PersonalizationManager personalization =
                 new org.levimc.launcher.util.PersonalizationManager(this);
@@ -208,6 +220,8 @@ public class ContentDetailsActivity extends BaseActivity {
         if (content.logo != null && content.logo.thumbnailUrl != null) {
             Glide.with(this)
                     .load(content.logo.thumbnailUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .skipMemoryCache(true)
                     .centerCrop()
                     .placeholder(R.drawable.ic_minecraft_cube)
                     .error(R.drawable.ic_minecraft_cube)
@@ -216,6 +230,10 @@ public class ContentDetailsActivity extends BaseActivity {
     }
 
     private void loadDescription() {
+        if (!client.isApiEnabled()) {
+            summary.setVisibility(View.GONE);
+            return;
+        }
         client.getContentDescription(content.id, new CurseForgeClient.CurseForgeCallback<String>() {
             @Override
             public void onSuccess(String result) {
@@ -242,6 +260,10 @@ public class ContentDetailsActivity extends BaseActivity {
     }
 
     private void onInstallClick() {
+        if (!client.isApiEnabled()) {
+            Toast.makeText(this, R.string.catalog_unavailable, Toast.LENGTH_LONG).show();
+            return;
+        }
         loadAllFiles();
     }
 
@@ -266,9 +288,10 @@ public class ContentDetailsActivity extends BaseActivity {
             @Override
             public void onError(Throwable t) {
                 runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
                     progressBar.setVisibility(View.GONE);
                     btnInstall.setEnabled(true);
-                    Toast.makeText(ContentDetailsActivity.this, getString(R.string.failed_to_load_files, t.getMessage()), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ContentDetailsActivity.this, R.string.catalog_unavailable, Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -285,7 +308,13 @@ public class ContentDetailsActivity extends BaseActivity {
 
         org.levimc.launcher.ui.adapter.FileListAdapter adapter = new org.levimc.launcher.ui.adapter.FileListAdapter(file -> {
             dialog.dismiss();
-            downloadAndImport(file);
+            if (Boolean.FALSE.equals(file.isAvailable) || file.downloadUrl == null
+                    || file.downloadUrl.trim().isEmpty()) {
+                Toast.makeText(this, R.string.catalog_file_unavailable, Toast.LENGTH_LONG).show();
+                onBrowserClick();
+            } else {
+                downloadAndImport(file);
+            }
         }, accent);
 
         recycler.setLayoutManager(new LinearLayoutManager(this));
@@ -331,14 +360,44 @@ public class ContentDetailsActivity extends BaseActivity {
 
     private void onBrowserClick() {
         if (content.links != null && content.links.websiteUrl != null) {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(content.links.websiteUrl));
-            startActivity(intent);
+            try {
+                Uri uri = Uri.parse(content.links.websiteUrl);
+                if (!"https".equalsIgnoreCase(uri.getScheme())) throw new ActivityNotFoundException();
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.no_website_link_available, Toast.LENGTH_SHORT).show();
+            }
         } else {
             Toast.makeText(this, R.string.no_website_link_available, Toast.LENGTH_SHORT).show();
         }
     }
 
     private void downloadAndImport(ContentFile file) {
+        if (!client.isApiEnabled()) {
+            Toast.makeText(this, R.string.catalog_unavailable, Toast.LENGTH_LONG).show();
+            return;
+        }
+        String downloadUrl = file.downloadUrl == null ? "" : file.downloadUrl.trim();
+        Uri downloadUri = Uri.parse(downloadUrl);
+        String fileName = file.fileName == null ? "" : file.fileName.trim();
+        int extensionStart = fileName.lastIndexOf('.');
+        String extension = extensionStart < 0 ? "" : fileName.substring(extensionStart + 1).toLowerCase(Locale.ROOT);
+        if (!"https".equalsIgnoreCase(downloadUri.getScheme())
+                || !("mcpack".equals(extension) || "mcaddon".equals(extension)
+                || "mcworld".equals(extension) || "mctemplate".equals(extension) || "zip".equals(extension))) {
+            Toast.makeText(this, R.string.catalog_unsupported_download, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (file.fileLength > MAX_CATALOG_DOWNLOAD_BYTES) {
+            Toast.makeText(this, R.string.catalog_download_too_large, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!client.isAuthorizedDownloadUrl(downloadUrl)) {
+            Toast.makeText(this, R.string.catalog_file_unavailable, Toast.LENGTH_LONG).show();
+            onBrowserClick();
+            return;
+        }
         runOnUiThread(() -> {
             progressBar.setVisibility(View.VISIBLE);
             progressBar.setIndeterminate(true);
@@ -347,36 +406,68 @@ public class ContentDetailsActivity extends BaseActivity {
         });
         
         downloadExecutor.execute(() -> {
+            File outputFile = null;
             try {
-                File cacheDir = getCacheDir();
-                File outputFile = new File(cacheDir, file.fileName);
-                
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(file.downloadUrl).build();
-                
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Failed to download");
-                    
+                outputFile = File.createTempFile("oblivion_catalog_", "." + extension, getCacheDir());
+                okhttp3.OkHttpClient httpClient = new OkHttpClient.Builder()
+                        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        .followRedirects(false)
+                        .followSslRedirects(false)
+                        .build();
+                Request request = client.buildAuthorizedDownloadRequest(downloadUrl);
+                okhttp3.Call call = httpClient.newCall(request);
+                activeDownload = call;
+                try (Response response = call.execute()) {
+                    if (response.code() >= 300 && response.code() < 400) {
+                        throw new DirectDownloadUnavailableException();
+                    }
+                    if (response.code() == 401 || response.code() == 403 || response.code() == 404) {
+                        throw new DirectDownloadUnavailableException();
+                    }
+                    if (!response.isSuccessful() || response.body() == null) throw new IOException("Download unavailable");
+                    long contentLength = response.body().contentLength();
+                    if (contentLength > MAX_CATALOG_DOWNLOAD_BYTES) throw new IOException("Download exceeds size limit");
                     try (InputStream is = response.body().byteStream();
                          FileOutputStream fos = new FileOutputStream(outputFile)) {
                         byte[] buffer = new byte[8192];
                         int read;
+                        long received = 0;
                         while ((read = is.read(buffer)) != -1) {
+                            if (Thread.currentThread().isInterrupted()) throw new IOException("Download cancelled");
+                            received += read;
+                            if (received > MAX_CATALOG_DOWNLOAD_BYTES) throw new IOException("Download exceeds size limit");
                             fos.write(buffer, 0, read);
+                        }
+                        if (file.fileLength > 0 && received != file.fileLength) {
+                            throw new IOException("Downloaded file size did not match catalog metadata");
                         }
                     }
                 }
-
+                File completedFile = outputFile;
+                activeDownload = null;
                 runOnUiThread(() -> {
-                    Toast.makeText(this, getString(R.string.curseforge_importing), Toast.LENGTH_SHORT).show();
-                    importFile(outputFile);
+                    if (isFinishing() || isDestroyed()) {
+                        if (completedFile.exists()) completedFile.delete();
+                        return;
+                    }
+                    Toast.makeText(this, R.string.curseforge_importing, Toast.LENGTH_SHORT).show();
+                    importFile(completedFile);
                 });
 
             } catch (Exception e) {
+                if (outputFile != null && outputFile.exists()) outputFile.delete();
+                activeDownload = null;
                 runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
                     progressBar.setVisibility(View.GONE);
                     btnInstall.setEnabled(true);
-                    Toast.makeText(this, getString(R.string.curseforge_download_failed) + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    if (e instanceof DirectDownloadUnavailableException) {
+                        Toast.makeText(this, R.string.catalog_file_unavailable, Toast.LENGTH_LONG).show();
+                        onBrowserClick();
+                        return;
+                    }
+                    Toast.makeText(this, R.string.curseforge_download_failed, Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -389,6 +480,7 @@ public class ContentDetailsActivity extends BaseActivity {
         if (currentVersion == null) {
             progressBar.setVisibility(View.GONE);
             btnInstall.setEnabled(true);
+            if (file.exists()) file.delete();
             Toast.makeText(this, R.string.not_found_version, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -416,6 +508,7 @@ public class ContentDetailsActivity extends BaseActivity {
                         progressBar.setVisibility(View.GONE);
                         btnInstall.setEnabled(true);
                         Toast.makeText(ContentDetailsActivity.this, error, Toast.LENGTH_LONG).show();
+                        if (file.exists()) file.delete();
                     });
                 }
 

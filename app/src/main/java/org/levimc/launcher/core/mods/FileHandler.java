@@ -221,7 +221,7 @@ public class FileHandler {
                 }
             }
             handleFilesWithOverwriteCheck(supportedUris, name, PRELOAD_NATIVE_TYPE, version, author,
-                    minecraftVersions, callback);
+                    minecraftVersions, callback, true);
         }).start();
     }
 
@@ -586,6 +586,17 @@ public class FileHandler {
             String overrideAuthor,
             List<String> overrideMinecraftVersions,
             FileOperationCallback callback) {
+        handleFilesWithOverwriteCheck(fileUris, overrideName, overrideType, overrideVersion,
+                overrideAuthor, overrideMinecraftVersions, callback, false);
+    }
+
+    private void handleFilesWithOverwriteCheck(
+            List<Uri> fileUris,
+            String overrideName, String overrideType, String overrideVersion,
+            String overrideAuthor,
+            List<String> overrideMinecraftVersions,
+            FileOperationCallback callback,
+            boolean disableNewMods) {
         new Thread(() -> {
             if (targetPath == null) {
                 postError(callback, "No selected version mods directory");
@@ -601,6 +612,7 @@ public class FileHandler {
             int completed = 0;
             int processed = 0;
             String lastError = null;
+            Set<String> newModIds = new HashSet<>();
 
             for (Uri uri : fileUris) {
                 PreparedImport preparedImport = null;
@@ -633,6 +645,7 @@ public class FileHandler {
                                 preparedImport.overwriteFolders);
                     } else {
                         copyDirectory(preparedImport.packageDir, destinationDir);
+                        if (disableNewMods) newModIds.add(preparedImport.targetId);
                     }
                     ++processed;
                 } catch (Exception e) {
@@ -650,13 +663,20 @@ public class FileHandler {
             final int processedCount = processed;
             final String finalError = lastError;
             new Handler(Looper.getMainLooper()).post(() -> {
-                modManager.reloadMods();
-                if (processedCount > 0) {
-                    if (callback != null) {
-                        callback.onSuccess(processedCount);
+                Runnable finish = () -> {
+                    if (processedCount > 0) {
+                        if (callback != null) {
+                            callback.onSuccess(processedCount);
+                        }
+                    } else if (callback != null && finalError != null && !finalError.isEmpty()) {
+                        callback.onError(finalError);
                     }
-                } else if (callback != null && finalError != null && !finalError.isEmpty()) {
-                    callback.onError(finalError);
+                };
+                if (disableNewMods) {
+                    modManager.reloadMods(newModIds, finish);
+                } else {
+                    modManager.reloadMods();
+                    finish.run();
                 }
             });
         }).start();

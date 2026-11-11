@@ -7,8 +7,9 @@
      Do not change placeholders or resource attributes. -->
 
 <resources>
+    <string name="unknown">Tidak diketahui</string>
     <!-- Common -->
-    <string name="app_name">LeviLauncher</string>
+    <string name="app_name">Oblivion</string>
     <string name="minecraft">Minecraft</string>
     <string name="launch">Luncurkan</string>
     <string name="beta_badge">Beta</string>
@@ -16,6 +17,24 @@
     <string name="cursor">Kursor</string>
     <string name="bedrock_edition">Edisi Bedrock</string>
     <string name="current_instance">Instans Saat Ini</string>
+    <string name="home_no_profiles_available">Instalasi Minecraft atau profil yang diimpor tidak ditemukan.</string>
+    <string name="manage_instances">Kelola instalasi</string>
+    <string name="instances_empty_title">Tidak ada profil</string>
+    <string name="instances_empty_message">Instal Minecraft atau impor profil melalui tindakan di atas.</string>
+    <string name="instances_no_results_title">Profil tidak ditemukan</string>
+    <string name="instances_no_results_message">Coba pencarian lain atau tampilkan semua profil.</string>
+    <string name="home_loading_profiles">Memeriksa profil Minecraft…</string>
+    <string name="home_profile_installed">Minecraft terinstal · %1$s</string>
+    <string name="home_profile_custom">Profil kustom · %1$s</string>
+    <string name="home_installation_detected">Instalasi Minecraft terdeteksi · %1$s</string>
+    <string name="home_installation_updated">Instalasi Minecraft diperbarui · %1$s</string>
+    <string name="home_installation_not_found">Instalasi Minecraft tidak ditemukan. Instal dari toko resmi untuk meluncurkan.</string>
+    <string name="home_installation_check_unavailable">Status instalasi Minecraft tidak dapat diperiksa. Coba lagi sebentar.</string>
+    <string name="home_profile_installation_missing">Instalasi Minecraft tidak ditemukan · Profil: %1$s</string>
+    <string name="home_profile_installation_updated">Instalasi Minecraft diperbarui · Profil: %1$s</string>
+    <string name="home_profile_installation_unavailable">Status instalasi Minecraft tidak tersedia · Profil: %1$s</string>
+    <string name="home_launching">Memulai Minecraft…</string>
+    <string name="home_launch_failed">Minecraft tidak dapat dimulai. Periksa pesan kesalahan.</string>
 
     <!-- Mods -->
     <string name="mods_title">Mods (%d)</string>
@@ -118,6 +137,7 @@
     <string name="unknown_sources_permission_message">Untuk menginstal atau memperbarui aplikasi ini, mohon berikan izin untuk menginstal aplikasi yang tidak dikenal. Klik "Izinkan" untuk membuka pengaturan sistem, aktifkan izin untuk aplikasi ini, dan kembali untuk melanjutkan.</string>
 
     <string name="check_update">Periksa pembaruan</string>
+    <string name="updates_not_configured">Pembaruan rilis Oblivion belum dikonfigurasi.</string>
     <string name="version_prefix">Versi: </string>
     <string name="unknown_error">Kesalahan tidak diketahui</string>
     <string name="preloader_sigs_title">Data runtime</string>
@@ -350,6 +370,9 @@
     <string name="confirm_delete_behavior_pack">Apakah Anda yakin ingin menghapus paket perilaku ini? Tindakan ini tidak dapat dibatalkan.</string>
     <string name="confirm_delete_skin_pack">Apakah Anda yakin ingin menghapus paket kulit(skin) ini? Tindakan ini tidak dapat dibatalkan.</string>
     <string name="importing_content">Mengimpor konten…</string>
+    <string name="content_imported">Diimpor:</string>
+    <string name="content_import_none_new">Tidak ada konten baru yang diimpor.</string>
+    <string name="content_import_duplicates">Melewati %1$d paket yang sudah ada di pustaka ini.</string>
     <string name="exporting_world">Mengekspor dunia…</string>
     <string name="exporting_pack">Mengekspor paket…</string>
     <string name="backing_up_world">Mencadangkan dunia…</string>
@@ -437,6 +460,7 @@
     <string name="external_mods_verification_failed">Verifikasi unduhan gagal</string>
     <string name="external_mods_importing">Mengimpor mod…</string>
     <string name="external_mods_installed">%1$s terpasang</string>
+    <string name="external_mods_imported_disabled">%1$s diimpor. Mod katalog baru dimulai dalam keadaan nonaktif; tinjau di pengelola mod sebelum mengaktifkannya.</string>
     <string name="external_mods_install_failed">Tidak dapat memasang %1$s: %2$s</string>
     <string name="external_mods_open_failed">Tidak ada browser yang dapat membuka unduhan ini</string>
     <string name="external_mods_direct_download">Unduhan langsung</string>
@@ -540,7 +564,7 @@
     <string name="xuid">XUID</string>
     <string name="sign_in">Masuk</string>
     <string name="sign_out">Keluar</string>
-    <string name="accounts_active_privilege">Sudah masuk</string>
+    <string name="accounts_active_privilege">Aktif di perangkat ini. Ketuk Segarkan untuk memeriksa sesi Microsoft.</string>
 
     <string name="ms_login_title">Login Microsoft</string>
     <string name="ms_login_header_subtitle">Masuk ke Minecraft dengan aman</string>
@@ -552,6 +576,12 @@
     <string name="ms_login_success">Masuk sebagai %1$s</string>
     <string name="ms_login_failed">Login Microsoft gagal</string>
     <string name="ms_login_failed_detail">Login gagal: %1$s</string>
+    <string name="ms_login_network_error">Tidak dapat membuka halaman masuk Microsoft. Periksa koneksi lalu coba lagi.</string>
+    <string name="ms_login_declined">Proses masuk Microsoft dibatalkan atau ditolak.</string>
+    <string name="ms_login_service_unavailable">Layanan masuk Microsoft sedang tidak tersedia. Coba lagi nanti.</string>
+    <string name="ms_login_oauth_error">Proses masuk Microsoft tidak selesai. Mulai proses masuk baru.</string>
+    <string name="ms_refresh_account">Segarkan</string>
+    <string name="ms_refreshing_account">Menyegarkan akun Microsoft dan Xbox…</string>
     <string name="ms_choose_login_method">Masuk ke Minecraft</string>
     <string name="ms_choose_login_method_desc">Pilih alur kode perangkat berbasis browser atau lanjutkan dengan halaman Microsoft tertanam.</string>
     <string name="ms_device_code_login">Lanjutkan dengan browser</string>
@@ -855,6 +885,49 @@
 
     <!-- CurseForge -->
     <string name="curseforge_title">CurseForge</string>
+    <string name="catalog_category_all">Semua</string>
+    <string name="catalog_category_addons">Add-On</string>
+    <string name="catalog_category_maps">Peta</string>
+    <string name="catalog_category_skins">Skin</string>
+    <string name="catalog_category_textures">Tekstur</string>
+    <string name="catalog_category_scripts">Skrip</string>
+    <string name="catalog_sort_popular">Populer</string>
+    <string name="catalog_sort_downloads">Unduhan</string>
+    <string name="catalog_sort_recent">Baru diperbarui</string>
+    <string name="catalog_sort_name">Nama</string>
+    <string name="catalog_no_results">Tidak ada hasil katalog.</string>
+    <string name="catalog_unavailable">Akses katalog CurseForge dinonaktifkan pada build ini atau sedang tidak tersedia. Pengelolaan konten lokal tetap dapat digunakan.</string>
+    <string name="catalog_refresh_failed">Katalog tidak dapat dimuat ulang.</string>
+    <string name="catalog_file_unavailable">File ini tidak tersedia untuk diunduh langsung. Membuka halaman kreator.</string>
+    <string name="catalog_unsupported_download">File ini bukan arsip konten Bedrock yang didukung.</string>
+    <string name="catalog_download_too_large">Unduhan ini melebihi batas aman 100 MB.</string>
+    <string name="catalog_download_count_label">unduhan</string>
+    <string name="catalog_source_curseforge">CurseForge</string>
+    <string name="ai_assistant_title">Asisten AI</string>
+    <string name="ai_assistant_subtitle">Bantuan opsional untuk launcher dan konten Bedrock.</string>
+    <string name="ai_privacy_notice">Belum ada penyedia AI yang dikonfigurasi, jadi tidak ada data yang dikirim. Jika penyedia eksternal ditambahkan nanti, pesan dan percakapan sesi ini hanya dapat dikirim setelah Anda menyetujuinya. Jangan masukkan kata sandi, token, kunci API, atau informasi pribadi; penyamaran otomatis tidak dapat mendeteksi semua rahasia. Dunia, arsip, data akun, dan laporan crash tidak dilampirkan otomatis.</string>
+    <string name="ai_external_opt_in">Izinkan permintaan AI eksternal</string>
+    <string name="ai_opt_in_dialog_title">Pemberitahuan permintaan AI eksternal</string>
+    <string name="ai_opt_in_dialog_message">Saat penyedia resmi dikonfigurasi, mengirim pesan akan membagikan percakapan sesi ini kepada penyedia tersebut. Jangan masukkan kata sandi, token, kunci API, atau informasi pribadi; penyamaran otomatis tidak dapat mendeteksi semua rahasia. Dunia lokal, arsip Add-On, data Microsoft/Xbox, dan log crash tidak dilampirkan otomatis. Anda dapat menonaktifkannya kapan saja. Build ini belum memiliki penyedia.</string>
+    <string name="ai_opt_in_confirm">Izinkan permintaan</string>
+    <string name="ai_opt_in_cancel">Batal</string>
+    <string name="ai_provider_not_configured">AI tidak tersedia karena belum ada penyedia yang dikonfigurasi. Oblivion tetap dapat digunakan tanpa AI.</string>
+    <string name="ai_capability_label">Bantuan untuk</string>
+    <string name="ai_capability_discovery">Pencarian Add-On</string>
+    <string name="ai_capability_explanation">Penjelasan metadata konten</string>
+    <string name="ai_capability_compatibility">Bantuan kompatibilitas</string>
+    <string name="ai_capability_troubleshooting">Pemecahan masalah</string>
+    <string name="ai_empty_conversation">Pilih topik bantuan dan jelaskan kebutuhan Anda. Asisten tidak akan mengarang hasil atau menjamin kompatibilitas.</string>
+    <string name="ai_message_hint">Jelaskan bantuan yang Anda perlukan</string>
+    <string name="ai_send">Kirim</string>
+    <string name="ai_clear_conversation">Hapus percakapan</string>
+    <string name="ai_loading">Menunggu penyedia AI…</string>
+    <string name="ai_error_opt_in">Izinkan permintaan AI eksternal terlebih dahulu.</string>
+    <string name="ai_error_not_configured">Belum ada penyedia AI yang dikonfigurasi. Pesan tidak dikirim.</string>
+    <string name="ai_error_unavailable">Penyedia AI tidak tersedia. Pesan tidak dikirim.</string>
+    <string name="ai_error_generic">Permintaan tidak dapat diselesaikan. Tidak ada jawaban yang dibuat.</string>
+    <string name="ai_speaker_you">Anda</string>
+    <string name="ai_speaker_assistant">Asisten</string>
     <string name="curseforge_subtitle">Jelajahi dan unduh konten</string>
     <string name="curseforge_search_hint">Cari konten…</string>
     <string name="curseforge_download">Unduh</string>
@@ -1111,4 +1184,27 @@
     <string name="bg_media_blur_unavailable">Android 12+</string>
     <string name="screenshot_saved">Tangkapan layar disimpan</string>
     <string name="backup_select_downloads">Pilih folder Download untuk menyimpan cadangan di Download/LeviLauncher/Backups.</string>
+    <string name="filter_favorites">Favorit</string>
+    <string name="instances_favorites_empty_title">Belum ada profil favorit</string>
+    <string name="instances_favorites_empty_message">Tandai profil dengan bintang agar muncul di sini. Profil yang ada tetap tersimpan.</string>
+    <string name="content_add_favorite">Tambahkan ke favorit</string>
+    <string name="content_remove_favorite">Hapus dari favorit</string>
+    <string name="content_recent">Terbaru</string>
+    <string name="settings_dashboard">Dasbor</string>
+    <string name="settings_dashboard_title">Tata letak dasbor</string>
+    <string name="settings_dashboard_desc">Sembunyikan atau tampilkan bagian dan pintasan opsional. Kontrol peluncuran dan profil selalu tersedia.</string>
+    <string name="settings_dashboard_mods">Tampilkan bagian Mod</string>
+    <string name="settings_dashboard_content">Tampilkan bagian konten lokal</string>
+    <string name="settings_dashboard_shortcuts">Tampilkan bagian pintasan</string>
+    <string name="settings_dashboard_action_curseforge">Tampilkan pintasan CurseForge</string>
+    <string name="settings_dashboard_action_ai">Tampilkan pintasan Asisten AI</string>
+    <string name="settings_dashboard_action_packages">Tampilkan pintasan paket</string>
+    <string name="settings_dashboard_action_external_mods">Tampilkan pintasan mod eksternal</string>
+    <string name="settings_dashboard_action_accounts">Tampilkan pintasan akun</string>
+    <string name="settings_dashboard_action_quick_launch">Tampilkan pintasan peluncuran cepat</string>
+    <string name="settings_dashboard_reset">Atur ulang tata letak dasbor</string>
+    <string name="content_favorites_empty_title">Belum ada konten favorit</string>
+    <string name="content_favorites_empty_message">Gunakan bintang pada dunia atau paket untuk menambahkannya ke favorit.</string>
+    <string name="content_recent_worlds_empty_title">Belum ada dunia yang baru dibuka</string>
+    <string name="content_recent_worlds_empty_message">Dunia muncul di sini setelah dibuka di editor Oblivion.</string>
 </resources>

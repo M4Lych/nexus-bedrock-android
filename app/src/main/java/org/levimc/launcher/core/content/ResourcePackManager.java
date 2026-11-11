@@ -2,6 +2,7 @@ package org.levimc.launcher.core.content;
 
 import android.content.Context;
 import android.net.Uri;
+import org.levimc.launcher.R;
 import org.levimc.launcher.core.versions.GameVersion;
 import org.levimc.launcher.util.LauncherStorage;
 
@@ -118,9 +119,14 @@ public class ResourcePackManager {
             if (resources == null && behaviors == null && skins == null) throw new IOException("No version selected");
             ContentArchive.Result result = ContentArchive.importUri(context, uri, null, resources,
                     behaviors, skins, false, callback::onProgress);
-            String message = result.total() == 1 ? "Pack imported successfully"
+            String message = result.total() == 0 && result.duplicatePacks > 0
+                    ? context.getString(R.string.content_import_none_new)
+                    : result.total() == 1 ? "Pack imported successfully"
                     : "Imported: " + result.resources + " resource pack(s), " + result.behaviors
                         + " behavior pack(s), " + result.skins + " skin pack(s)";
+            if (result.duplicatePacks > 0) {
+                message += "\n" + context.getString(R.string.content_import_duplicates, result.duplicatePacks);
+            }
             if (!result.warnings.isEmpty()) message += "\nErrors:\n" + String.join("\n", result.warnings);
             return message;
         });

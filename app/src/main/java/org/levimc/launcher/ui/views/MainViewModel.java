@@ -44,13 +44,33 @@ public class MainViewModel extends ViewModel {
     }
 
     public void reloadMods() {
-        loadMods(true);
+        loadMods(true, Collections.emptySet(), null);
+    }
+
+    /** Refreshes mods, disables newly imported catalog items, then invokes completion on main. */
+    public void reloadMods(Set<String> disabledModIds, Runnable completion) {
+        Set<String> ids = disabledModIds == null
+                ? Collections.emptySet()
+                : new HashSet<>(disabledModIds);
+        loadMods(true, ids, completion);
     }
 
     private void loadMods(boolean invalidateCache) {
+        loadMods(invalidateCache, Collections.emptySet(), null);
+    }
+
+    private void loadMods(boolean invalidateCache, Set<String> disabledModIds, Runnable completion) {
         long generation = refreshGeneration.incrementAndGet();
         modsExecutor.execute(() -> {
             List<Mod> mods = invalidateCache ? modManager.reloadMods() : modManager.getMods();
+            for (Mod mod : mods) {
+                if (disabledModIds.contains(mod.getId())) {
+                    modManager.setModEnabled(mod.getId(), false);
+                }
+            }
+            if (!disabledModIds.isEmpty()) {
+                mods = modManager.getMods();
+            }
             InstalledPackages ws = readPackages(modManager.getCurrentVersion());
             InstalledPackages.Pkg ll = ws == null ? null : ws.leviLamina();
             Set<String> hidden = ws == null ? Collections.emptySet() : ws.loaderFolderKeys();
@@ -63,6 +83,9 @@ public class MainViewModel extends ViewModel {
                 loaderFolders = hidden;
                 modsLiveData.postValue(shown);
                 loaderLiveData.postValue(ll == null ? null : ll.version);
+            }
+            if (completion != null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(completion);
             }
         });
     }

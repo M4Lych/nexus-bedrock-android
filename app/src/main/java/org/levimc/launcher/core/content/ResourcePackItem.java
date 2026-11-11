@@ -362,6 +362,14 @@ public class ResourcePackItem extends ContentItem {
         return packType == PackType.RESOURCE_PACK;
     }
 
+    public String getUuid() {
+        return uuid;
+    }
+
+    public PackType getPackType() {
+        return packType;
+    }
+
     public boolean isBehaviorPack() {
         return packType == PackType.BEHAVIOR_PACK;
     }

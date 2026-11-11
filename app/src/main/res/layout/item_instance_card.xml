@@ -41,11 +41,26 @@
             android:textColor="@color/primary"
             android:background="@drawable/bg_release_tag" />
 
-        <ImageView
+        <ImageButton
+            android:id="@+id/card_favorite_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_add_favorite"
+            android:padding="11dp"
+            android:src="@drawable/ic_star"
+            android:alpha="0.35"
+            app:tint="@color/on_surface" />
+
+        <ImageButton
             android:id="@+id/card_settings_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/instance_settings_title"
+            android:padding="9dp"
             android:src="@drawable/ic_settings"
             app:tint="@color/text_secondary"
             android:scaleType="centerInside" />

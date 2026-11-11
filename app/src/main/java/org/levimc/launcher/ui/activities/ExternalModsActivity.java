@@ -301,7 +301,7 @@ public final class ExternalModsActivity extends BaseActivity {
                 finishInstallState();
                 updateInstalledMods();
                 Toast.makeText(ExternalModsActivity.this,
-                        getString(R.string.external_mods_installed, mod.name), Toast.LENGTH_SHORT).show();
+                        getString(R.string.external_mods_imported_disabled, mod.name), Toast.LENGTH_LONG).show();
             }
 
             @Override
