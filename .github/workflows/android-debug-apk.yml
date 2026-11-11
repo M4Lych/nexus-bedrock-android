@@ -120,13 +120,56 @@ jobs:
           test -n "$readelf"
           gxcore="$RUNNER_TEMP/libgxcore.so"
           unzip -p "$apk" lib/arm64-v8a/libgxcore.so > "$gxcore"
-          dynamic="$($readelf --dynamic "$gxcore")"
-          needed="$(printf '%s\n' "$dynamic" | grep 'NEEDED' || true)"
-          if [[ -z "$needed" ]]; then
-            echo "No DT_NEEDED entries were reported for libgxcore.so." >&2
+
+          if ! header="$("$readelf" --file-header "$gxcore" 2>&1)"; then
+            printf 'Unable to read libgxcore.so ELF header:\n%s\n' "$header" >&2
             exit 1
           fi
-          printf '%s\n' "$needed"
+          if ! program_headers="$("$readelf" --program-headers "$gxcore" 2>&1)"; then
+            printf 'Unable to read libgxcore.so program headers:\n%s\n' "$program_headers" >&2
+            exit 1
+          fi
+          if ! dynamic="$("$readelf" --dynamic "$gxcore" 2>&1)"; then
+            printf 'Unable to read libgxcore.so dynamic section:\n%s\n' "$dynamic" >&2
+            exit 1
+          fi
+
+          printf '%s\n' '=== libgxcore.so ELF header ===' "$header"
+          printf '%s\n' '=== libgxcore.so program headers ===' "$program_headers"
+          printf '%s\n' '=== libgxcore.so dynamic section ===' "$dynamic"
+
+          if ! grep -Eq 'Class:[[:space:]]+ELF64' <<< "$header"; then
+            echo "Invalid libgxcore.so: expected ELF64." >&2
+            exit 1
+          fi
+          if ! grep -Eq "Data:[[:space:]]+2's complement, little endian" <<< "$header"; then
+            echo "Invalid libgxcore.so: expected little-endian ELF data." >&2
+            exit 1
+          fi
+          if ! grep -Eq 'Type:[[:space:]]+DYN([[:space:]]|$)' <<< "$header"; then
+            echo "Invalid libgxcore.so: expected ET_DYN shared object." >&2
+            exit 1
+          fi
+          if ! grep -Eq 'Machine:[[:space:]]+AArch64([[:space:]]|$)' <<< "$header"; then
+            echo "Invalid libgxcore.so: expected AArch64 machine architecture." >&2
+            exit 1
+          fi
+          if ! grep -Eq '(^|[[:space:]])DYNAMIC([[:space:]]|$)' <<< "$program_headers"; then
+            echo "Invalid libgxcore.so: expected a PT_DYNAMIC program header." >&2
+            exit 1
+          fi
+          if ! grep -Eq 'Dynamic section at offset ' <<< "$dynamic"; then
+            echo "Invalid libgxcore.so: PT_DYNAMIC exists but no valid dynamic section was reported." >&2
+            exit 1
+          fi
+
+          needed="$(printf '%s\n' "$dynamic" | grep 'NEEDED' || true)"
+          if [[ -z "$needed" ]]; then
+            echo "No DT_NEEDED entries are declared for libgxcore.so; runtime dependency compatibility is not verified."
+          else
+            printf 'DT_NEEDED entries declared for libgxcore.so:\n%s\n' "$needed"
+          fi
+          echo "ELF packaging inspection does not verify runtime compatibility."
 
       - name: Verify Debug APK exists
         run: test -s app/build/outputs/apk/debug/app-debug.apk
