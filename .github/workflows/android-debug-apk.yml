@@ -115,9 +115,66 @@ jobs:
             fi
           done
 
-          readelf="$(find "$ANDROID_SDK_ROOT/ndk/28.2.13676358/toolchains/llvm/prebuilt" \
-            -type f -name llvm-readelf -print -quit)"
-          test -n "$readelf"
+          readelf="$(command -v llvm-readelf || true)"
+          if [[ -z "$readelf" || ! -x "$readelf" ]]; then
+            readelf=""
+            ndk_search_dirs=()
+            ndk_candidate_paths=()
+
+            for ndk_root in "${ANDROID_NDK_HOME:-}" "${ANDROID_NDK_ROOT:-}"; do
+              if [[ -n "$ndk_root" ]]; then
+                ndk_candidate_paths+=("$ndk_root")
+                if [[ -d "$ndk_root" ]]; then
+                  ndk_search_dirs+=("$ndk_root")
+                fi
+              fi
+            done
+
+            for sdk_root in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}"; do
+              if [[ -n "$sdk_root" ]]; then
+                for ndk_path in \
+                  "$sdk_root/ndk/28.2.13676358" \
+                  "$sdk_root/ndk" \
+                  "$sdk_root/ndk-bundle"; do
+                  ndk_candidate_paths+=("$ndk_path")
+                  if [[ -d "$ndk_path" ]]; then
+                    ndk_search_dirs+=("$ndk_path")
+                  fi
+                done
+              fi
+            done
+
+            for ndk_path in "${ndk_search_dirs[@]}"; do
+              candidate="$(find -L "$ndk_path" -name llvm-readelf -print -quit 2>/dev/null || true)"
+              if [[ -n "$candidate" && -x "$candidate" ]]; then
+                readelf="$candidate"
+                break
+              fi
+            done
+
+            if [[ -z "$readelf" ]]; then
+              echo "Unable to locate an executable llvm-readelf via PATH or the installed Android NDK directories." >&2
+              printf 'ANDROID_SDK_ROOT=%s\nANDROID_HOME=%s\nANDROID_NDK_HOME=%s\nANDROID_NDK_ROOT=%s\n' \
+                "${ANDROID_SDK_ROOT:-<unset>}" \
+                "${ANDROID_HOME:-<unset>}" \
+                "${ANDROID_NDK_HOME:-<unset>}" \
+                "${ANDROID_NDK_ROOT:-<unset>}" >&2
+              printf 'NDK paths checked:\n' >&2
+              if [[ "${#ndk_candidate_paths[@]}" -eq 0 ]]; then
+                echo '  (none; no NDK or SDK environment paths were set)' >&2
+              else
+                printf '  %s\n' "${ndk_candidate_paths[@]}" >&2
+              fi
+              exit 1
+            fi
+          fi
+
+          if ! readelf_version="$("$readelf" --version 2>&1)"; then
+            printf 'Found llvm-readelf at %s, but could not run --version:\n%s\n' "$readelf" "$readelf_version" >&2
+            exit 1
+          fi
+          printf 'Resolved llvm-readelf: %s\n%s\n' "$readelf" "$readelf_version"
+
           gxcore="$RUNNER_TEMP/libgxcore.so"
           unzip -p "$apk" lib/arm64-v8a/libgxcore.so > "$gxcore"
 
