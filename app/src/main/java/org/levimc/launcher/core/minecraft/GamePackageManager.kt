@@ -421,7 +421,7 @@ class GamePackageManager private constructor(
             try {
                 if (normalizedName == "gxcore") {
                     if (!NativeBridgeHelper.bootstrapGxCore()) {
-                        val detail = "gxcore bootstrap failed"
+                        val detail = NativeBridgeHelper.getGxCoreLoadFailure() ?: "gxcore bootstrap failed"
                         Log.e(TAG, "Failed to load $fileName from $source: $detail")
                         return LibraryLoadResult(normalizedName, fileName, source, false, elapsedSince(startedAt), detail)
                     }

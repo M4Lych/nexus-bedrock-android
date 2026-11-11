@@ -1,12 +1,12 @@
 <resources>
-    <color name="primary">#1B5E20</color>
+    <color name="primary">#0D5B4C</color>
     <color name="on_primary">#FFFFFF</color>
 
-    <color name="secondary">#2E7D32</color>
+    <color name="secondary">#00796B</color>
     <color name="on_secondary">#FFFFFF</color>
 
-    <color name="primary_container">#E8F5E9</color>
-    <color name="on_primary_container">#1B5E20</color>
+    <color name="primary_container">#DCEFE8</color>
+    <color name="on_primary_container">#123D34</color>
 
     <color name="tertiary">#01579B</color>
     <color name="on_tertiary">#FFFFFF</color>
@@ -15,27 +15,29 @@
     <color name="error">#F44336</color>
     <color name="on_error">#FFFFFF</color>
 
-    <color name="background">#F4F7F2</color>
+    <color name="background">#F1F5F2</color>
     <color name="surface">#FFFFFF</color>
-    <color name="surface_variant">#EAF0E9</color>
-    <color name="on_background">#202820</color>
-    <color name="on_surface">#202820</color>
-    <color name="on_surface_variant">#36513A</color>
+    <color name="surface_variant">#E5EEE9</color>
+    <color name="on_background">#17251F</color>
+    <color name="on_surface">#17251F</color>
+    <color name="on_surface_variant">#3C554A</color>
 
-    <color name="outline">#BDBDBD</color>
+    <color name="outline">#899B90</color>
     <color name="white">#FFFFFF</color>
-    <color name="divider">#DCE4DB</color>
+    <color name="divider">#D6E1DA</color>
 
     <color name="scrim">#66000000</color>
 
     <color name="glow_green">#4AE0A0</color>
-    <color name="glow_cyan">#00FFFF</color>
+    <color name="glow_cyan">#4BBFA9</color>
+    <color name="overlay_button_background">#AA00796B</color>
+    <color name="overlay_button_active_background">#DD00796B</color>
 
     <color name="abi_label_text">#000000</color>
-    <color name="accent_text">#1B5E20</color>
+    <color name="accent_text">#0D5B4C</color>
 
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#59655B</color>
+    <color name="text_primary">#17251F</color>
+    <color name="text_secondary">#53675D</color>
     <color name="qa_icon_color">#000000</color>
     <color name="ic_launcher_adaptive_back">#F6F3EA</color>
 </resources>

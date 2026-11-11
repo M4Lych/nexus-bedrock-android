@@ -11,7 +11,6 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -25,7 +24,6 @@ import org.levimc.launcher.preloader.PreloaderSignatureRulesManager;
 import org.levimc.launcher.util.LauncherStorage;
 import org.levimc.launcher.util.PersonalizationManager;
 
-import java.util.Locale;
 
 @SuppressLint("CustomSplashScreen")
 public class SplashActivity extends BaseActivity {
@@ -41,7 +39,6 @@ public class SplashActivity extends BaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        syncSystemLocale();
         super.onCreate(savedInstanceState);
         binding = ActivitySplashBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -298,23 +295,5 @@ public class SplashActivity extends BaseActivity {
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             })
             .start();
-    }
-
-    private void syncSystemLocale() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            try {
-                android.app.LocaleManager localeManager = getSystemService(android.app.LocaleManager.class);
-                if (localeManager != null) {
-                    android.os.LocaleList appLocales = localeManager.getApplicationLocales();
-                    android.os.LocaleList systemLocales = localeManager.getSystemLocales();
-                    if (!appLocales.isEmpty()) {
-                        localeManager.setApplicationLocales(android.os.LocaleList.getEmptyLocaleList());
-                    }
-                    if (!systemLocales.isEmpty()) {
-                        Locale.setDefault(systemLocales.get(0));
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
     }
 }

@@ -220,7 +220,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="@string/maintainer"
+                            android:text="@string/about_upstream_maintainer"
                             android:fontFamily="@font/misans"
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />

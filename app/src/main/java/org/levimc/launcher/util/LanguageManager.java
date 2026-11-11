@@ -30,17 +30,17 @@ public class LanguageManager {
 
     public static String getSavedLanguage(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String savedTag = prefs.getString(LANGUAGE_KEY, Locale.getDefault().toLanguageTag());
-        String tag = normalizeLanguageTag(savedTag);
-        if (!tag.equals(savedTag)) {
+        String savedTag = prefs.getString(LANGUAGE_KEY, null);
+        String tag = resolveLanguageTag(savedTag);
+        if (!prefs.contains(LANGUAGE_KEY) || !tag.equals(savedTag)) {
             prefs.edit().putString(LANGUAGE_KEY, tag).apply();
         }
         return tag;
     }
 
-    private static String normalizeLanguageTag(String tag) {
+    static String resolveLanguageTag(String tag) {
         if (tag == null || tag.isEmpty()) {
-            return Locale.getDefault().toLanguageTag();
+            return "en";
         }
         int separator = tag.indexOf('-');
         String language = separator < 0 ? tag : tag.substring(0, separator);
@@ -51,7 +51,7 @@ public class LanguageManager {
     }
 
     public void setAppLanguage(String languageCode) {
-        languageCode = normalizeLanguageTag(languageCode);
+        languageCode = resolveLanguageTag(languageCode);
         SharedPreferences.Editor editor = activity.getSharedPreferences(PREFS_NAME, Activity.MODE_PRIVATE).edit();
         editor.putString(LANGUAGE_KEY, languageCode);
         editor.apply();
@@ -121,6 +121,6 @@ public class LanguageManager {
         if (list.isEmpty()) {
             return getSavedLanguage(activity);
         }
-        return normalizeLanguageTag(list.get(0).toLanguageTag());
+        return resolveLanguageTag(list.get(0).toLanguageTag());
     }
 }

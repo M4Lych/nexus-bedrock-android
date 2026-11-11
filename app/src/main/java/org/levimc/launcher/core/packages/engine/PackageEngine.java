@@ -116,7 +116,7 @@ public final class PackageEngine {
             if (old == null) old = new StateFile(SIDE, devicePlatform, Collections.<StateFile.Pkg>emptyList());
             if (!old.side.equals(SIDE)) {
                 throw new PackageException(PackageException.Kind.ENV_MISMATCH, null, "The state file " + StateFile.PATH
-                        + " records the side \"" + old.side + "\" in its \"side\" field, but LeviLauncher manages client"
+                        + " records the side \"" + old.side + "\" in its \"side\" field, but Oblivion manages client"
                         + " workspaces only (\"" + SIDE + "\"). Server workspaces are managed by lip.");
             }
             try (Resolver r = new Resolver(SIDE, old.platform, http)) {

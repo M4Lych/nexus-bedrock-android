@@ -2,8 +2,10 @@ package org.levimc.launcher.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import org.json.JSONObject
 import org.levimc.launcher.core.minecraft.LauncherApplication
 import androidx.core.content.edit
@@ -14,8 +16,16 @@ import androidx.annotation.Keep
 
 @Keep
 object NativeBridgeHelper {
+    private const val TAG = "NativeBridgeHelper"
+
     @Volatile
     private var gxcoreLoaded = false
+
+    @Volatile
+    private var gxcoreLoadFailure: String? = null
+
+    @Volatile
+    private var gxcoreLoadCause: Throwable? = null
 
     @JvmStatic
     fun getAppContext(): Context {
@@ -34,12 +44,32 @@ object NativeBridgeHelper {
                 try {
                     System.loadLibrary("gxcore")
                     gxcoreLoaded = true
+                    gxcoreLoadFailure = null
+                    gxcoreLoadCause = null
                     true
-                } catch (_: Throwable) {
+                } catch (error: LinkageError) {
+                    recordGxCoreFailure("System.loadLibrary(gxcore)", error)
+                    false
+                } catch (error: SecurityException) {
+                    recordGxCoreFailure("System.loadLibrary(gxcore)", error)
                     false
                 }
             }
         }
+    }
+
+    @JvmStatic
+    fun getGxCoreLoadFailure(): String? = gxcoreLoadFailure
+
+    @JvmStatic
+    fun getGxCoreLoadCause(): Throwable? = gxcoreLoadCause
+
+    private fun recordGxCoreFailure(operation: String, error: Throwable) {
+        val detail = NativeLibraryDiagnostic.describeFailure(error)
+        gxcoreLoadFailure = detail
+        gxcoreLoadCause = error
+        val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
+        Log.e(TAG, "$operation failed for arm64 launcher native bridge (device ABI: $abi): $detail", error)
     }
 
     @JvmStatic
@@ -66,7 +96,11 @@ object NativeBridgeHelper {
         return try {
             nativeBootstrapGxCore()
             true
-        } catch (_: Throwable) {
+        } catch (error: LinkageError) {
+            recordGxCoreFailure("gxcore bootstrap", error)
+            false
+        } catch (error: RuntimeException) {
+            recordGxCoreFailure("gxcore bootstrap", error)
             false
         }
     }

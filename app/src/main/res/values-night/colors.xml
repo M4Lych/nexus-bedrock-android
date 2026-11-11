@@ -3,14 +3,14 @@
     <color name="primary">#4AE0A0</color>
     <color name="on_primary">#000000</color>
 
-    <color name="secondary">#00FFFF</color>
+    <color name="secondary">#55D6BE</color>
     <color name="on_secondary">#000000</color>
 
     <color name="primary_container">#1A3A2A</color>
     <color name="on_primary_container">#4AE0A0</color>
 
-    <color name="tertiary">#81D4FA</color>
-    <color name="on_tertiary">#000000</color>
+    <color name="tertiary">#9ADBCB</color>
+    <color name="on_tertiary">#10221D</color>
     <color name="external_mod_ad">#FFB74D</color>
 
     <color name="error">#FF6B6B</color>
@@ -30,7 +30,9 @@
     <color name="scrim">#99000000</color>
 
     <color name="glow_green">#4AE0A0</color>
-    <color name="glow_cyan">#00FFFF</color>
+    <color name="glow_cyan">#55D6BE</color>
+    <color name="overlay_button_background">#AA0D3A30</color>
+    <color name="overlay_button_active_background">#DD1D5B51</color>
 
     <color name="abi_label_text">#FFFFFF</color>
     <color name="accent_text">#4AE0A0</color>

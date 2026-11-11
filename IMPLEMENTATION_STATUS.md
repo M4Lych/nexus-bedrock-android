@@ -675,3 +675,49 @@ Final status remains **IN PROGRESS / release blocked**, not complete: unresolved
 - Wrapper SHA-256 remains the verified `81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f`. No wrapper or build configuration changed.
 - Stop condition applied: did not run the wrapper version command, task listing, Debug assembly, or unit tests. No APK was generated; build/test results remain **NOT RUN — missing JDK/Android SDK**. No workflow was triggered.
 - Final `git diff --check` passed. No source, configuration, or workflow files changed. Only this status update and the release-readiness update record this recheck. Safest next step remains a controlled workstation/hosted runner with the specified JDK/SDK/NDK, followed by the ordered Gradle commands above.
+
+## Milestone 14 — Oblivion identity & runtime fix (current checkpoint, 2026-11-11)
+
+### Worktree and preservation
+
+- Work began on `oblivion/m14-device-fixes` at `35be38a7caeb3b546a2d5061d501b519a3ba217e`; the initial worktree was clean and `git diff --check` passed. No previous files were modified before this checkpoint; no commit, push, branch switch, reset, stash, or user-data operation was performed.
+- Application ID, namespace, profile identifiers, Microsoft/Xbox serialized account format, XAL paths/preferences, mod/package identifiers, and the established `Downloads/LeviLauncher/Backups` directory were not changed.
+
+### Native launch investigation — Critical, root cause not yet confirmed
+
+- Audited `GamePackageManager.copyStreamToReadOnlyFile()` → `NativeImageGuard.publishStagedImage()` → `NativeBridgeHelper.ensureGxCoreLoaded()` → `System.loadLibrary("gxcore")`. The immediate source defect was confirmed: the helper swallowed every `Throwable`, while `publishStagedImage()` replaced that failure with the generic “Failed to load native image preparation” IOException. M14 now records and logs the original `LinkageError`/`SecurityException` with its exception class, linker message, stack, and device ABI; the preparation exception includes the detail and keeps the throwable as its cause. Failure remains failure; image preparation/integrity checks and Minecraft APK handling are unchanged.
+- Four app-bundled libraries are present under `app/src/main/jniLibs/arm64-v8a`: `libgxcore.so`, `libPlayFabMultiplayer.so`, `libmaesdk.so`, and `libinbuiltmods.so`. The app build uses `arm64-v8a`, `ANDROID_STL=c++_shared`, CMake, and NDK `28.2.13676358`. `libc++_shared.so` is not checked into `jniLibs`; it is expected to be supplied by Android native build/packaging and/or the Minecraft runtime dependency graph, which has not been verified in an APK.
+- Added a CI check that, after Debug assembly, requires the five expected arm64 entries (`libgxcore.so`, `libc++_shared.so`, PlayFab, MAE, and inbuilt mods) and prints `llvm-readelf` `DT_NEEDED` entries from the packaged gxcore. The Debug workflow now also runs on this M14 branch, and all its external actions remain pinned to full SHAs. The workflow has not run.
+- The actual device linker message, `DT_NEEDED` list, APK ABI entries, and `libc++_shared.so` compatibility remain unverified. This container has no APK, Java/Javac, Android SDK/NDK, `readelf`/`llvm-readelf`, or `file`; therefore the reported failure root cause cannot yet be named. The code changes improve evidence for the next device/CI run but are not a verified fix for the original launch failure.
+- Added unit tests for preserving a synthetic linker failure through the native-preparation exception. Added an instrumentation test for English-on-fresh-preference and saved-language persistence, restoring the original preference after the test. Neither test ran here.
+
+### Branding, language, and UI
+
+- Replaced inherited user-facing LeviLauncher product references across localized string resources with Oblivion. Retained source-author attribution, provider/technology names, and the existing backup folder name because they identify upstream contributors, integrations, or on-disk compatibility. About and Settings repository links now target `M4Lych/nexus-bedrock-android`; the About source link still identifies LiteLDev.
+- Removed inherited upstream announcements from `resources/launcher/news.json`. The remote news endpoint now targets the Oblivion repository; a new `feed_source` marker prevents unmarked legacy cache data from being presented as Oblivion news without deleting that file. This cache-key addition is under the existing news preference namespace. FCM delivery still depends on inherited Firebase/topic configuration and is not verified as an Oblivion-operated publisher.
+- Updated the bundled changelog with the actual M14 source changes; no product announcement was fabricated.
+- `LanguageManager` now uses and persists English when the existing `settings/language` key is absent/empty. Explicit selections remain respected; legacy `in`/`idn` values still normalize to Indonesian. Removed Splash's system-locale reset so it cannot override the saved app locale.
+- Updated shared light/dark forest/teal colors, global widget accent, shared night-mode cards, and the About attribution label. Existing navigation and feature logic were retained. These shared theme tokens reach screens that use the existing app palette; this was not a per-layout redesign and has not been visually/device tested.
+
+### Feature and account ownership
+
+- Added `docs/FEATURE_OWNERSHIP.md` to classify launcher/profiles/content as local Oblivion product functionality; Microsoft/Xbox, Firebase, CurseForge, Pojav Controls, LeviLamina/`lip`, and the `levimc.org` package catalog as integrations; and native mod trust, news hosting, updates, AI backend, cloud, and Oblivion Account as requiring further adaptation or implementation.
+- Added `docs/M14_IDENTITY_MIGRATION.md` describing the unchanged account/storage boundary and a separate non-destructive migration plan. No Microsoft/Xbox authentication flow, XAL serialization, encryption, or credential storage was altered. Existing account compatibility is source-inspected only, not runtime-verified.
+
+### Verification actually performed
+
+- `git diff --check`: passed after edits.
+- Node static checks: balanced XML tag nesting in 354 Android resource XML files; English and Indonesian (`values-idn` and legacy `values-in`) string key parity; JSON parsing for the edited news/changelog assets; six workflow `uses:` references are full 40-character SHAs; M14 branch, build/test command, read-only permission, and native packaging assertions are present. These checks are source-level; no full XML parser or YAML parser is installed.
+- The repository resource checker `tools/validate_m14_resources.py` was added and wired into CI, but could not run locally because Python is unavailable.
+- Tool availability check found Node 22 and `unzip`; Java, Javac, Python, Gradle executable, Android SDK Manager, Android SDK, NDK tools, `readelf`, `file`, `aapt`, and `xmllint` were unavailable. `local.properties` is absent (contents were not read); no local APK exists.
+- Consequently `./gradlew --no-daemon assembleDebug :app:testDebugUnitTest` was not run. No unit tests, instrumentation tests, APK inspection, native dependency inspection, workflow run, or physical-device test was performed. No compile/runtime result is claimed.
+
+### Remaining work / next steps
+
+1. Run the M14 Debug workflow on an authorized push and inspect its build, test, APK-entry, and `DT_NEEDED` results. Do not treat the build as device validation.
+2. On the test device, capture the complete sanitized linker stack for `libgxcore.so`, compare APK `lib/arm64-v8a` contents and its `DT_NEEDED` entries, then verify `libc++_shared.so` identity/compatibility against the selected Minecraft runtime. Never log account tokens or credentials.
+3. Run unit and instrumentation tests; perform fresh-install, explicit language selection, upgrade, account preservation, login, and Minecraft launch tests on a physical device.
+4. Review remaining visual layouts on portrait and landscape screens. The shared token update is a foundation, not a claim that every screen received bespoke redesign.
+5. Resolve previously documented Critical native/Minecraft/preloader provenance blockers and High dependency/auth-storage/catalog trust issues before public distribution.
+
+Current M14 state: **implementation in progress; source diagnostics improved; original native launch root cause and fix unverified; no build/test/device validation**.

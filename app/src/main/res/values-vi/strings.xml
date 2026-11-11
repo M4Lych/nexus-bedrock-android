@@ -32,7 +32,7 @@
     <string name="about_title">☕ Về</string>
     <string name="copyright">©2024–2026 LeviMC. Mọi quyền được bảo lưu.</string>
     <string name="font_license">Ứng dụng đang sử dụng phông chữ Misans.</string>
-    <string name="about_footer_github">GitHub: https://github.com/LiteLDev/LeviLauncher-Android</string>
+    <string name="about_footer_github">GitHub: https://github.com/M4Lych/nexus-bedrock-android</string>
     <string name="quick_actions_title">Thao tác nhanh</string>
     <string name="content_mgmt_section_title">Quản lý nội dung</string>
     <string name="misc_section_title">Khác</string>
@@ -180,8 +180,8 @@
 
     <string name="error_no_browser">Không có trình duyệt nào khả dụng</string>
     <!-- License & Security -->
-    <string name="eula_title">Thỏa thuận cấp phép LeviLauncher</string>
-    <string name="eula_message"><b>Chào mừng bạn đến với LeviLauncher</b>\n\nBằng cách sử dụng phần mềm này, bạn đồng ý với các điều khoản sau:\n\n• Đây là trình khởi chạy Minecraft  <b>không chính thức</b>\n• Bạn phải sở hữu một bản sao Minecraft <b>được cấp phép</b> \n• Mọi hình thức vi phạm bản quyền hoặc gian lận đều bị nghiêm cấm\n• Việc sử dụng các bản Mods/gói tài nguyên là do bạn tự chịu rủi ro\n• Không liên kết với Mojang/Microsoft\n\nViệc tiếp tục sử dụng đồng nghĩa với việc bạn đồng ý</string>
+    <string name="eula_title">Thỏa thuận cấp phép Oblivion</string>
+    <string name="eula_message"><b>Chào mừng bạn đến với Oblivion</b>\n\nBằng cách sử dụng phần mềm này, bạn đồng ý với các điều khoản sau:\n\n• Đây là trình khởi chạy Minecraft  <b>không chính thức</b>\n• Bạn phải sở hữu một bản sao Minecraft <b>được cấp phép</b> \n• Mọi hình thức vi phạm bản quyền hoặc gian lận đều bị nghiêm cấm\n• Việc sử dụng các bản Mods/gói tài nguyên là do bạn tự chịu rủi ro\n• Không liên kết với Mojang/Microsoft\n\nViệc tiếp tục sử dụng đồng nghĩa với việc bạn đồng ý</string>
     <string name="eula_agree">Đồng ý</string>
     <string name="eula_exit">Từ chối</string>
 
@@ -445,8 +445,8 @@
     <string name="external_mods_open_link">Mở liên kết</string>
     <string name="external_mods_external_dialog_title">Tải xuống bên ngoài</string>
     <string name="external_mods_ad_dialog_title">Tải xuống có quảng cáo</string>
-    <string name="external_mods_external_dialog_message">%1$s sử dụng trang tải xuống bên ngoài LeviLauncher.\n\n1. Nhấn Mở liên kết và tải tệp .levipack hoặc .so.\n2. Quay lại LeviLauncher và mở Mod.\n3. Nhấn Quét.\n4. Nhấn Thêm bên cạnh mod bạn muốn nhập.\n\nQuét chỉ kiểm tra thư mục Tải xuống chính. Hãy chuyển tệp vào đó nếu trình duyệt đã lưu ở nơi khác.</string>
-    <string name="external_mods_ad_dialog_message">%1$s sử dụng trang tải xuống có quảng cáo do nhà phát triển chọn. LeviLauncher không kiểm soát trang đó hoặc quảng cáo trên đó.\n\n1. Nhấn Mở liên kết và tải tệp .levipack hoặc .so.\n2. Quay lại LeviLauncher và mở Mod.\n3. Nhấn Quét.\n4. Nhấn Thêm bên cạnh mod bạn muốn nhập.\n\nQuét chỉ kiểm tra thư mục Tải xuống chính. Chỉ tải tệp mod; không cài ứng dụng không liên quan hoặc cho phép thông báo.</string>
+    <string name="external_mods_external_dialog_message">%1$s sử dụng trang tải xuống bên ngoài Oblivion.\n\n1. Nhấn Mở liên kết và tải tệp .levipack hoặc .so.\n2. Quay lại Oblivion và mở Mod.\n3. Nhấn Quét.\n4. Nhấn Thêm bên cạnh mod bạn muốn nhập.\n\nQuét chỉ kiểm tra thư mục Tải xuống chính. Hãy chuyển tệp vào đó nếu trình duyệt đã lưu ở nơi khác.</string>
+    <string name="external_mods_ad_dialog_message">%1$s sử dụng trang tải xuống có quảng cáo do nhà phát triển chọn. Oblivion không kiểm soát trang đó hoặc quảng cáo trên đó.\n\n1. Nhấn Mở liên kết và tải tệp .levipack hoặc .so.\n2. Quay lại Oblivion và mở Mod.\n3. Nhấn Quét.\n4. Nhấn Thêm bên cạnh mod bạn muốn nhập.\n\nQuét chỉ kiểm tra thư mục Tải xuống chính. Chỉ tải tệp mod; không cài ứng dụng không liên quan hoặc cho phép thông báo.</string>
     <string name="external_mods_by_author">bởi %1$s</string>
     <string name="external_mods_version">Mod %1$s</string>
     <string name="external_mods_minecraft_versions">Minecraft %1$s</string>
@@ -559,9 +559,9 @@
     <string name="ms_device_code_login_desc">Mở phiên trình duyệt riêng tư với mã thiết bị đã được điền sẵn.</string>
     <string name="ms_webview_login">Mở đăng nhập nhúng</string>
     <string name="ms_webview_option_title">WebView nhúng</string>
-    <string name="ms_webview_login_desc">Đăng nhập mà không rời LeviLauncher. Dùng tùy chọn này khi luồng trình duyệt không khả dụng.</string>
+    <string name="ms_webview_login_desc">Đăng nhập mà không rời Oblivion. Dùng tùy chọn này khi luồng trình duyệt không khả dụng.</string>
     <string name="ms_device_code_title">Đăng nhập bằng Mã thiết bị</string>
-    <string name="ms_device_code_instructions">Mở trang đăng nhập thiết bị của Microsoft, nhập mã này rồi chấp thuận quyền truy cập. LeviLauncher sẽ tự động hoàn tất.</string>
+    <string name="ms_device_code_instructions">Mở trang đăng nhập thiết bị của Microsoft, nhập mã này rồi chấp thuận quyền truy cập. Oblivion sẽ tự động hoàn tất.</string>
     <string name="ms_device_code_label">Mã thiết bị Microsoft</string>
     <string name="ms_device_code_requesting">Đang yêu cầu mã bảo mật…</string>
     <string name="ms_device_code_waiting_code">--------</string>
@@ -575,7 +575,7 @@
     <string name="ms_device_code_copied">Đã sao chép mã</string>
     <string name="ms_device_code_open_browser">Mở đăng nhập Microsoft</string>
     <string name="ms_device_code_step_title">Hoàn tất đăng nhập trong trình duyệt</string>
-    <string name="ms_device_code_browser_note">LeviLauncher mở trình duyệt mặc định trong phiên riêng tư, tự động điền mã và yêu cầu đăng nhập Microsoft mới.</string>
+    <string name="ms_device_code_browser_note">Oblivion mở trình duyệt mặc định trong phiên riêng tư, tự động điền mã và yêu cầu đăng nhập Microsoft mới.</string>
     <string name="ms_choose_other_method">Phương thức khác</string>
     <string name="ms_no_browser">Không có trình duyệt nào trên thiết bị này.</string>
     <string name="ms_default_browser_no_private_mode">Trình duyệt mặc định của bạn không hỗ trợ đăng nhập riêng tư. Hãy cập nhật hoặc dùng đăng nhập WebView.</string>
@@ -588,14 +588,14 @@
     <string name="ms_active_badge">Bật</string>
     <string name="ms_account_subtitle_format">ID người dùng: %1$s • Đã cập nhật: %2$s</string>
     <string name="xbox_avatar">Ảnh đại diện Xbox</string>
-    <string name="launcher_managed_mc_login">Đăng nhập vào Minecraft bằng LeviLauncher</string>
+    <string name="launcher_managed_mc_login">Đăng nhập vào Minecraft bằng Oblivion</string>
     <string name="dialog_title_login_required">Cần đăng nhập</string>
     <string name="dialog_message_login_required">Tính năng đăng nhập do launcher quản lý đã được bật, nhưng chưa có tài khoản nào được đăng nhập. Vui lòng vào mục Tài khoản để đăng nhập.</string>
     <string name="go_to_accounts">Tài khoản</string>
     <string name="disable_launcher_login_and_continue">Đóng</string>
 
     <string name="ms_feature_disabled_title">Tính năng bị tắt</string>
-    <string name="ms_feature_disabled_desc">Hãy bật “Đăng nhập Minecraft bằng LeviLauncher” trong Cài đặt để quản lý tài khoản Microsoft.</string>
+    <string name="ms_feature_disabled_desc">Hãy bật “Đăng nhập Minecraft bằng Oblivion” trong Cài đặt để quản lý tài khoản Microsoft.</string>
     <string name="ms_activated">Đã kích hoạt</string>
 
     <!-- Popup labels -->
@@ -881,25 +881,26 @@
     <string name="vanilla_prefix">Vanilla %s</string>
 
     <string name="about_page_title">Về</string>
-    <string name="about_subtitle">LeviLauncher — Một Launcher Hiện Đại Cho Minecraft Bedrock</string>
+    <string name="about_subtitle">Oblivion — Một Launcher Hiện Đại Cho Minecraft Bedrock</string>
     <string name="about_authors_title">👥 Tác giả &amp; Người bảo trì</string>
     <string name="about_author_name">DreamGuXiang</string>
     <string name="about_author_badge">Tác giả</string>
     <string name="about_author_role">Tác giả LeviLauncher</string>
+    <string name="about_upstream_maintainer">Người bảo trì dự án gốc</string>
     <string name="about_afdian">Afdian</string>
     <string name="about_patreon">Patreon</string>
     <string name="about_source_title">Mã nguồn &amp; Mã nguồn mở</string>
-    <string name="about_github_repo">GitHub · LeviLauncher</string>
+    <string name="about_github_repo">GitHub · Oblivion</string>
     <string name="about_github_org">LiteLDev</string>
-    <string name="about_license_note">Xem file LICENSE trong kho lưu trữ để biết chi tiết về giấy phép.</string>
+    <string name="about_license_note">Xem LICENSE và THIRD_PARTY_NOTICES.md để biết giấy phép của dự án và các thành phần.</string>
     <string name="about_contribute_title">Đóng góp</string>
-    <string name="about_contribute_desc">Chúng tôi hoan nghênh các đóng góp thông qua Issues hoặc Pull Requests để cải thiện LeviLauncher.</string>
+    <string name="about_contribute_desc">Chúng tôi hoan nghênh các đóng góp thông qua Issues hoặc Pull Requests để cải thiện Oblivion.</string>
     <string name="about_issues">Issue</string>
     <string name="about_star_fork">Star / Fork</string>
 
     <string-array name="launcher_tips">
         <item>Phần Cài đặt cho phép bạn điều chỉnh chủ đề, màu sắc, hình nền và các tùy chọn hiển thị khác sao cho phù hợp với thiết lập của mình.</item>
-        <item>LeviLauncher là mã nguồn mở. Vui lòng sử dụng GitHub Issues để báo cáo sự cố hoặc đề xuất cải tiến.</item>
+        <item>Oblivion là mã nguồn mở. Vui lòng sử dụng GitHub Issues để báo cáo sự cố hoặc đề xuất cải tiến.</item>
         <item>Sử dụng menu thả xuống phiên bản để nhanh chóng chuyển đổi giữa các phiên bản hiện tại.</item>
         <item>Liệu mọi người có thực sự đọc những thứ này không:)?</item>
         <item>Bạn có thể kéo các mod để thay đổi thứ tự ưu tiên tải của chúng.</item>
@@ -1050,10 +1051,10 @@
     <string name="mod_config_hotbar_slot_opacity">Độ mờ ô thanh nhanh %1$d</string>
     <!-- Changelog & News -->
     <string name="changelog_title">Có gì mới</string>
-    <string name="changelog_version">LeviLauncher %1$s</string>
+    <string name="changelog_version">Oblivion %1$s</string>
     <string name="changelog_continue">Tiếp tục</string>
     <string name="news_title">Tin tức launcher</string>
-    <string name="news_subtitle">Cập nhật, thông báo và các lưu ý quan trọng từ đội ngũ LeviLauncher.</string>
+    <string name="news_subtitle">Cập nhật, thông báo và các lưu ý quan trọng từ đội ngũ Oblivion.</string>
     <string name="news_enable_notifications">Bật thông báo</string>
     <string name="news_refresh">Làm mới tin tức</string>
     <string name="news_empty">Chưa có tin tức nào được đăng.</string>
@@ -1063,7 +1064,7 @@
     <string name="news_refresh_failed">Không thể làm mới. Đang hiển thị tin đã lưu.</string>
     <string name="news_unread_description">Tin tức launcher, %1$d chưa đọc</string>
     <string name="news_notification_channel">Tin tức launcher</string>
-    <string name="news_notification_channel_description">Thông báo mới và các lưu ý quan trọng từ LeviLauncher</string>
+    <string name="news_notification_channel_description">Thông báo mới và các lưu ý quan trọng từ Oblivion</string>
     <string name="mod_config_category_slots">Ô</string>
     <string name="mod_config_category_appearance">Giao diện</string>
     <string name="mod_config_category_behavior">Hành vi</string>

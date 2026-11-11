@@ -148,3 +148,25 @@ Critical native/Minecraft/preloader provenance blockers and High dependency, aut
 - Gradle Wrapper JAR SHA-256: `81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f`, verified. No wrapper changes.
 - No Gradle version command, task listing, build, test, workflow, or APK operation was performed. Build and unit-test outcomes remain **NOT RUN — toolchain missing**. No dependency resolution or compiler diagnostics are available.
 - No source/build configuration changed in this recheck; only `IMPLEMENTATION_STATUS.md` and this document were updated. Next: provision JDK 21, Android SDK Platform 36, Build Tools 36.0.0, and NDK 28.2.13676358 on a suitable workstation or hosted runner. Then execute the wrapper version check, Debug assembly, and unit-test task in order.
+
+## M14 device-fix checkpoint — 2026-11-11
+
+This section describes current M14 source changes and supersedes no historical milestone record. It does not mark the device launch problem resolved.
+
+### Severity and status
+
+- **Critical — unresolved: Minecraft launch failure root cause.** Source tracing confirmed that `NativeBridgeHelper.ensureGxCoreLoaded()` previously swallowed the underlying `Throwable`, causing `NativeImageGuard.publishStagedImage()` to emit only a generic image-preparation error. M14 now logs/carries `LinkageError` and `SecurityException` details and preserves the cause on the preparation `IOException`. This fixes error visibility, not the underlying linker issue. The current environment has no APK, Android SDK/NDK, `readelf`, or physical device, so the actual `UnsatisfiedLinkError`, packaged ABI set, `DT_NEEDED`, libc++ identity, and link/load result remain unknown.
+- **High — CI check added, not executed.** `.github/workflows/android-debug-apk.yml` now includes `oblivion/m14-device-fixes`; after the existing Debug build/unit-test command it checks `arm64-v8a` package entries and prints `libgxcore.so` dynamic dependencies with the pinned NDK's `llvm-readelf`. All workflow actions remain full-SHA pinned. No workflow was triggered, and no APK was uploaded by this session.
+- **High — existing supply-chain blockers remain.** Prebuilt native binaries and Minecraft/preloader provenance/redistribution findings documented earlier remain unresolved. No native binary was replaced or removed.
+- **High — account data not changed.** Microsoft/Xbox auth and existing account/XAL storage identifiers and serialization remain untouched. Existing plaintext-storage concerns remain; M14 is not an encryption migration.
+- **Medium — language behavior source change.** An absent or empty `settings/language` preference now resolves to and stores English. Existing explicit language selections are preserved, including legacy Indonesian tag normalization. JVM and instrumentation tests were added but not run.
+- **Medium — news-provider ownership.** Bundled upstream announcements were removed and the endpoint now targets the Oblivion repository. A source marker makes prior unmarked cache data ineligible without deleting it. The inherited FCM topic/service still needs an explicitly operated Oblivion publisher review.
+- **Low — visual system foundation.** Shared forest/teal palette, dark surfaces, widget accent, and About attribution styling were updated. Existing feature screens/navigation remain, but no physical visual review or per-screen redesign verification occurred.
+
+### Validation limits
+
+Source-level checks passed: `git diff --check`; Node-based XML tag nesting check over 354 resource XML files; English/Indonesian key parity; edited JSON parsing; workflow SHA/build/package assertions. Python, a full XML parser, YAML parser/actionlint, Java/Javac, Android SDK/NDK tools, `readelf`, `file`, and a local APK were unavailable. Therefore the configured Gradle build, unit tests, instrumentation tests, resource/manifest merge, APK inspection, ELF dependency inspection, workflow, and device tests are **NOT RUN**.
+
+### Current release decision
+
+M14 does not establish a fix for the reported Minecraft launch failure. Do not label the launcher device-validated or prepare a public APK on the basis of these changes. The next evidence required is an executed Debug workflow with successful APK-entry/DT_NEEDED checks, followed by a real-device launch with the complete linker error captured and corrected using verified libraries/configuration only. Existing Critical provenance blockers also continue to prevent public distribution.

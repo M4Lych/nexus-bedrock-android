@@ -1,41 +1,19 @@
 {
   "schemaVersion": 1,
-  "headline": "LeviLauncher v1.6.1",
-  "summary": "Added Discord Rich Presence and optional microphone permission, with faster startup and content management and improved Indonesian language support.",
+  "headline": "Oblivion M14 development update",
+  "summary": "Oblivion continues as an independent community fork of LeviLauncher Android. This update improves native loading diagnostics, makes English the first-install language, and updates user-visible product identity.",
   "sections": [
-    {
-      "title": "New Features",
-      "items": [
-        {
-          "text": "Added Discord Rich Presence to show launcher activity, Minecraft version, and elapsed time. No login required in LeviLauncher."
-        },
-        {
-          "text": "Added microphone permission for mod developers creating proximity voice chat mods. Disabled by default; enable it in Android's app permissions."
-        }
-      ]
-    },
     {
       "title": "Improvements",
       "items": [
         {
-          "text": "Removed the foreground service. Update to BedrockTools v1.5.11 and enable No Disconnect to keep Minecraft running in the background and skip the loading screen when returning to the app."
+          "text": "Native library load failures now retain their linker error details for troubleshooting."
         },
         {
-          "text": "Optimised native library extraction and caching to reduce repeated work and speed up Minecraft startup."
+          "text": "New installations use English by default while saved language choices remain respected."
         },
         {
-          "text": "Optimised content management for faster pack imports and deletions, world list loading, and content counts."
-        },
-        {
-          "text": "The home screen now shows Skin Packs instead of Behavior Packs."
-        }
-      ]
-    },
-    {
-      "title": "Fixes",
-      "items": [
-        {
-          "text": "Fixed Indonesian locale handling and migrated existing language selections (#396)."
+          "text": "Oblivion branding is used in launcher-owned screens while upstream and third-party attribution is retained."
         }
       ]
     }

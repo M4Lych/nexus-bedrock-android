@@ -30,11 +30,13 @@ public final class NewsRepository {
         void onResult(NewsFeed feed, Throwable error);
     }
 
-    public static final String REMOTE_URL = "https://raw.githubusercontent.com/LiteLDev/LeviLauncher-Android/main/resources/launcher/news.json";
+    public static final String REMOTE_URL = "https://raw.githubusercontent.com/M4Lych/nexus-bedrock-android/refs/heads/main/resources/launcher/news.json";
     private static final String ASSET_PATH = "launcher/news.json";
     private static final String CACHE_FILE = "launcher_news.json";
     private static final String PREFS = "launcher_news_repository";
     private static final String KEY_LAST_REFRESH = "last_refresh";
+    private static final String KEY_FEED_SOURCE = "feed_source";
+    private static final String FEED_SOURCE = "oblivion";
     private static final long REFRESH_INTERVAL_MS = 5L * 60L * 1000L;
     private static final Gson GSON = new Gson();
     private static final OkHttpClient HTTP = new OkHttpClient();
@@ -87,7 +89,10 @@ public final class NewsRepository {
                     writeCache(appContext, json);
                     memoryCache = feed;
                     appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                            .edit().putLong(KEY_LAST_REFRESH, System.currentTimeMillis()).apply();
+                            .edit()
+                            .putLong(KEY_LAST_REFRESH, System.currentTimeMillis())
+                            .putString(KEY_FEED_SOURCE, FEED_SOURCE)
+                            .apply();
                     NewsState.notifyChanged(appContext);
                     result = feed;
                 }
@@ -110,7 +115,10 @@ public final class NewsRepository {
         NewsFeed cached = memoryCache;
         if (cached != null) return cached;
         File cacheFile = new File(context.getFilesDir(), CACHE_FILE);
-        if (cacheFile.isFile()) {
+        boolean cacheBelongsToOblivion = FEED_SOURCE.equals(context
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_FEED_SOURCE, ""));
+        if (cacheBelongsToOblivion && cacheFile.isFile()) {
             try (InputStream input = new FileInputStream(cacheFile)) {
                 cached = parse(readUtf8(input));
                 memoryCache = cached;
